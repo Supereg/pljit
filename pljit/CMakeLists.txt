@@ -1,6 +1,7 @@
 set(PLJIT_SOURCES
     # add your source files here
-    )
+    main.cpp
+    SourceCodeManagement.cpp SourceCodeManagement.hpp Lexer.cpp Lexer.hpp)
 
 add_library(pljit_core ${PLJIT_SOURCES})
 target_include_directories(pljit_core PUBLIC ${CMAKE_SOURCE_DIR})
