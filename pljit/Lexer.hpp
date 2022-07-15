@@ -40,6 +40,7 @@ class Token {
     static bool isIntegerLiteral(char character);
     static bool isParenthesis(char character);
     static bool isOperator(char character);
+    static bool isKeyword(std::string_view view);
     static TokenType typeOfCharacter(char character);
 
     Token(); // TODO creates an empty token!
@@ -48,9 +49,11 @@ class Token {
 
     TokenType getType() const;
 
-    SourceCodeReference content() const;
+    SourceCodeReference reference() const;
 
     ExtendResult extend(SourceCodeManagement::iterator character);
+
+    void finalize();
 
     // TODO OperatorType operatorType() const; ???
     // TODO parenthesis type getter?

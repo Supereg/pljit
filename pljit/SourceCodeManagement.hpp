@@ -47,7 +47,12 @@ class SourceCodeManagement {
         SourceCodeReference codeReference() const;
     };
 
-    SourceCodeManagement(std::string source_code);
+    enum class ErrorType {
+        NOTE,
+        ERROR,
+    };
+
+    explicit SourceCodeManagement(std::string&& source_code);
     // TODO destructor?
 
     SourceCodeManagement(const SourceCodeManagement& other) = delete;
@@ -58,18 +63,18 @@ class SourceCodeManagement {
     iterator begin() const;
     iterator end() const;
 
-    std::pair<unsigned, unsigned> line_number_and_column(const std::string_view::iterator& character) const;
+    // TODO may this be private/internal?
+    void print_error(ErrorType type, std::string_view message, const SourceCodeReference& reference) const;
 };
 //---------------------------------------------------------------------------
 class SourceCodeReference {
     friend SourceCodeManagement::iterator; // allows access to private constructors!
 
-    SourceCodeManagement* management; // TODO init in constructors!
+    const SourceCodeManagement* management; // TODO init in constructors!
 
     std::string_view string_content;
-    std::string_view::iterator source_code_end;
 
-    SourceCodeReference(std::string_view string_content, std::string_view::iterator source_code_end);
+    SourceCodeReference(const SourceCodeManagement* management, std::string_view string_content);
 
     public:
     SourceCodeReference();
@@ -79,7 +84,7 @@ class SourceCodeReference {
     void extend(int amount);
 
     // TODO replace ERROR; NOTE; WARN with enum type!
-    void print_information(std::string_view name, std::string_view message) const;
+    void print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message) const;
     // TODO create version which allows to specify single code point?
 };
 //---------------------------------------------------------------------------

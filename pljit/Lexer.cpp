@@ -20,7 +20,7 @@ bool pljit::Lexer::next(Token& token) {
     assert(token.isEmpty() && "Destination token must be EMPTY!");
 
     for(; current_position != management.end(); ++current_position) {
-        std::cout << "Reading : '" << *current_position << "'" << std::endl;
+        // TODO remove: std::cout << "Reading : '" << *current_position << "'" << std::endl;
 
         if (Token::isWhitespace(*current_position)) {
             if (token.isEmpty()) {
@@ -28,14 +28,21 @@ bool pljit::Lexer::next(Token& token) {
             }
 
             ++current_position; // consume the whitespace and return the token!
+
+            token.finalize();
             return true;
         } else if (Token::isSeparator(*current_position)) {
+            // TODO should a separator be a token (research this in the paper)
             if (token.isEmpty()) {
-                // TODO report error at code reference!
-                return false;
+                // TODO this is only a problem if a separator is before the first token?
+                // current_position.codeReference()
+                //    .print_error(SourceCodeManagement::ErrorType::ERROR, "unexpected separator");
+                continue;
             }
 
             ++current_position; // we consume the separator and return the token!
+
+            token.finalize();
             return true;
         }
         // TODO check for the "." END of program terminator! (check if there are characters after that!)
@@ -45,18 +52,24 @@ bool pljit::Lexer::next(Token& token) {
             case Token::ExtendResult::EXTENDED:
                 continue;
             case Token::ExtendResult::ERRONEOUS_CHARACTER:
-                // TODO report error at code reference!
-                break;
+                // TODO we want to return a proper error (so this thing can be used as a library)
+                //   => ability to derive line numbers and column when using it as a library!
+                current_position.codeReference()
+                    .print_error(SourceCodeManagement::ErrorType::ERROR, "unexpected character");
+                return false;
             case Token::ExtendResult::NON_MATCHING_TYPE:
                 assert(current_position != management.begin()); // can't be by definition
 
                 // we received a character which doesn't match the current token type
                 // we want to parse that character in the next query again (so we don't increment)!
+
+                token.finalize();
                 return true;
         }
     }
 
-    return {}; // return an empty token to signal end of stream!
+    assert(token.isEmpty());
+    return true; // return an empty token to signal end of stream!
 }
 //---------------------------------------------------------------------------
 pljit::Token::Token() : type(TokenType::EMPTY), source_code() {}
@@ -86,6 +99,10 @@ bool pljit::Token::isOperator(char character) {
     return character == '+' || character == '-' || character == '*' || character == '/' || character == '=';
 }
 
+bool pljit::Token::isKeyword(std::string_view view) {
+    return view == "PARAM" || view == "VAR" || view == "CONST" || view == "BEGIN" || view == "END" || view == "RETURN";
+}
+
 pljit::Token::TokenType pljit::Token::typeOfCharacter(char character) {
     if (isAlphanumeric(character)) {
         return TokenType::IDENTIFIER; // TODO change to keywords later
@@ -108,7 +125,7 @@ pljit::Token::TokenType pljit::Token::getType() const {
     return type;
 }
 
-pljit::SourceCodeReference pljit::Token::content() const {
+pljit::SourceCodeReference pljit::Token::reference() const {
     return source_code;
 }
 
@@ -132,5 +149,10 @@ pljit::Token::ExtendResult pljit::Token::extend(pljit::SourceCodeManagement::ite
     // assert(&(*character) == source_code.content().end() && "Tried to extend Token with more than 1 character difference");
     source_code.extend(1);
     return ExtendResult::EXTENDED;
+}
+void pljit::Token::finalize() {
+    if (type == TokenType::IDENTIFIER && isKeyword(source_code.content())) {
+        type = TokenType::KEYWORD;
+    }
 }
 //---------------------------------------------------------------------------

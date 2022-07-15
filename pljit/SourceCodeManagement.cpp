@@ -7,8 +7,8 @@
 #include <iostream>
 
 //---------------------------------------------------------------------------
-pljit::SourceCodeManagement::SourceCodeManagement(std::string source_code)
-    : source_code(std::move(source_code)),
+pljit::SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
+    : source_code(source_code),
       source_code_view(this->source_code){
 }
 
@@ -19,37 +19,64 @@ pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::begin() const
 pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::end() const {
     return { this, source_code_view.end() };
 }
+
 std::string_view pljit::SourceCodeManagement::content() const {
     return source_code_view;
 }
 
-// TODO check if pair is a viable solution for this?
-std::pair<unsigned, unsigned> pljit::SourceCodeManagement::line_number_and_column(const std::string_view::iterator& character) const {
-    assert(character >= source_code_view.begin() && character < source_code_view.end() && "Illegal range!");
-
-    std::string_view::iterator iterator = character; // copy the iterator to work on!
-
+void pljit::SourceCodeManagement::print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message, const SourceCodeReference& reference) const {
     unsigned column = 0;
     unsigned line = 1;
 
-    for (; iterator >= source_code_view.begin(); --iterator) {
-        if (*iterator == '\n') {
-            // trying to derive the column for a reference pointing to newline is rather weird
-            // and undefined behavior and will always report being the 0th column in the next line.
-            // That's just we defined it here to keep it simple!
+    {
+        std::string_view::iterator iterator = reference.content().begin();
+        assert(iterator >= source_code_view.begin() && iterator < source_code_view.end() && "Illegal range!");
+
+        while(--iterator >= source_code_view.begin()) {
+            if (*iterator == '\n') {
+                break;
+            }
+
+            ++column;
+        }
+
+        for (; iterator >= source_code_view.begin(); --iterator) {
+            if (*iterator == '\n') {
+                ++line;
+            }
+        }
+    }
+
+    std::string_view name; // TODO method
+    switch (type) {
+        case ErrorType::ERROR:
+            name = "error";
             break;
-        }
-
-        ++column;
+        case ErrorType::NOTE:
+            name = "note";
+            break;
     }
 
-    for (; iterator >= source_code_view.begin(); --iterator) {
-        if (*iterator == '\n') {
-            ++line;
-        }
-    }
+    // PRINT ERROR LINE
+    std::cout << line << ':' << (column + 1) << ": " << name << ": " << message << std::endl;
 
-    return { line, column };
+    // PRINT CODE LINE
+    std::string_view::iterator message_iterator_begin = reference.content().begin() - column;
+    std::string_view::iterator message_iterator_end = reference.content().begin();
+    for (; *message_iterator_end != '\n' && message_iterator_end != source_code_view.end(); ++message_iterator_end) {}
+
+    std::string_view code_line{message_iterator_begin, message_iterator_end};
+    std::cout << code_line << std::endl;
+
+    // PRINT ERROR INDICATOR
+    for (unsigned i = column; i > 0; --i) {
+        std::cout << ' ';
+    }
+    std::cout << '^';
+    for (unsigned i = 0; i < reference.content().size() - 1; ++i) {
+        std::cout << "~";
+    }
+    std::cout << std::endl;
 }
 //---------------------------------------------------------------------------
 pljit::SourceCodeManagement::iterator::iterator(const pljit::SourceCodeManagement* management, std::string_view::iterator view_iterator)
@@ -92,42 +119,29 @@ pljit::SourceCodeReference pljit::SourceCodeManagement::iterator::codeReference(
     std::string_view::iterator end = begin;
     ++end;
 
-    return { {begin, end}, &(*management->end()) };
+    return { management, {begin, end}};
 }
 //---------------------------------------------------------------------------
 pljit::SourceCodeReference::SourceCodeReference()
-    : string_content(), source_code_end(nullptr) {}
+    : management(nullptr), string_content() {}
 // TODO ensure we handle empty references properly!
 
-pljit::SourceCodeReference::SourceCodeReference(std::string_view string_content, std::string_view::iterator source_code_end)
-    : string_content(string_content), source_code_end(source_code_end) {
+pljit::SourceCodeReference::SourceCodeReference(const pljit::SourceCodeManagement* management, std::string_view string_content)
+    : management(management), string_content(string_content) {
 }
 
 std::string_view pljit::SourceCodeReference::content() const {
-    assert(source_code_end != nullptr);
+    assert(management != nullptr);
     return string_content;
 }
 
 void pljit::SourceCodeReference::extend(int amount) {
-    assert(source_code_end != nullptr);
-    assert(string_content.end() + amount <= source_code_end);
+    assert(management != nullptr);
+    assert(string_content.end() + amount <= &(*management->end()));
 
     string_content = { string_content.data(), string_content.size() + amount };
 }
-void pljit::SourceCodeReference::print_information(std::string_view name, std::string_view message) const {
-    auto [line, column] = management->line_number_and_column(string_content.begin());
-
-    std::cout << line << ':' << column << ": " << name << ": " << message << std::endl;
-
-    // TODO get the content till the first line! (move method handling into the management)
-
-    for (unsigned i = column - 1; i > 0; --i) {
-        std::cout << ' ';
-    }
-    std::cout << '^';
-    for (unsigned i = 1; i < string_content.size(); ++i) {
-        std::cout << "~";
-    }
-    std::cout << std::endl;
+void pljit::SourceCodeReference::print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message) const {
+    management->print_error(type, message, *this);
 }
 //---------------------------------------------------------------------------
