@@ -6,18 +6,19 @@
 #include <cassert>
 #include <iostream> // TODO remove
 
+// TODO AST: no nodes for separators. Still source code references for error printing(?)!
+// TODO -fno-rtti (no run time type information)
+// TODO optimizations (e.g. with division by zero) -> ensure that the error is still there
+
+// TODO using namespace pljit?
+
 //---------------------------------------------------------------------------
 pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(management), current_position(management.begin()) {}
 
-bool pljit::Lexer::next(Token& token) {
-    // TODO whitespaces= whitespaces, tabs, newline characters! (they are spearators!)
-    // TODO other separators: "," ";"
-    // TODO terminator!
-    // TODO operators: +, -, *, /, :=, =
-    // TODO keywords: "PARAM", "VAR", "CONST", "BEGIN", "END", "RETURN"
-    // TODO parentheses: "(", ")"
+pljit::Lexer::LexerResult pljit::Lexer::next() {
+    // assert(token.isEmpty() && "The token passed as the destination must be EMPTY!");
 
-    assert(token.isEmpty() && "Destination token must be EMPTY!");
+    Token token;
 
     for(; current_position != management.end(); ++current_position) {
         // TODO remove: std::cout << "Reading : '" << *current_position << "'" << std::endl;
@@ -30,33 +31,40 @@ bool pljit::Lexer::next(Token& token) {
             ++current_position; // consume the whitespace and return the token!
 
             token.finalize();
-            return true;
-        } else if (Token::isSeparator(*current_position)) {
-            // TODO should a separator be a token (research this in the paper)
-            if (token.isEmpty()) {
-                // TODO this is only a problem if a separator is before the first token?
-                // current_position.codeReference()
-                //    .print_error(SourceCodeManagement::ErrorType::ERROR, "unexpected separator");
-                continue;
+            return LexerResult{ token };
+        } else if (Token::isEndOfProgram(*current_position)) {
+            // consume the character and check if we this is really the end of the source code!
+            ++current_position;
+
+            while (current_position != management.end()) {
+                // we allow whitespaces after the dot, but nothing else!
+                if (!Token::isWhitespace(*current_position)) {
+                    SourceCodeError error{
+                        SourceCodeManagement::ErrorType::ERROR,
+                        "unexpected character after end of program terminator!",
+                        current_position.codeReference()
+                    };
+                    return LexerResult{ error };
+                }
+
+                ++current_position;
             }
 
-            ++current_position; // we consume the separator and return the token!
-
-            token.finalize();
-            return true;
+            break; // break the loop; jumps to the logic which handles "end of stream" below
         }
-        // TODO check for the "." END of program terminator! (check if there are characters after that!)
 
-        auto extend_result = token.extend(current_position);
+        Token::ExtendResult extend_result = token.extend(current_position);
         switch (extend_result) {
             case Token::ExtendResult::EXTENDED:
                 continue;
-            case Token::ExtendResult::ERRONEOUS_CHARACTER:
-                // TODO we want to return a proper error (so this thing can be used as a library)
-                //   => ability to derive line numbers and column when using it as a library!
-                current_position.codeReference()
-                    .print_error(SourceCodeManagement::ErrorType::ERROR, "unexpected character");
-                return false;
+            case Token::ExtendResult::ERRONEOUS_CHARACTER: {
+                SourceCodeError error{
+                    SourceCodeManagement::ErrorType::ERROR,
+                    "unexpected character",
+                    current_position.codeReference()
+                };
+                return LexerResult{ error };
+            }
             case Token::ExtendResult::NON_MATCHING_TYPE:
                 assert(current_position != management.begin()); // can't be by definition
 
@@ -64,12 +72,12 @@ bool pljit::Lexer::next(Token& token) {
                 // we want to parse that character in the next query again (so we don't increment)!
 
                 token.finalize();
-                return true;
+                return LexerResult{ token };
         }
     }
 
-    assert(token.isEmpty());
-    return true; // return an empty token to signal end of stream!
+    // this is called once we reach the end of the source code.
+    return LexerResult{ token }; // returning an empty token signals end of stream!
 }
 //---------------------------------------------------------------------------
 pljit::Token::Token() : type(TokenType::EMPTY), source_code() {}
@@ -99,15 +107,22 @@ bool pljit::Token::isOperator(char character) {
     return character == '+' || character == '-' || character == '*' || character == '/' || character == '=';
 }
 
+bool pljit::Token::isEndOfProgram(char character) {
+    return character == '.';
+}
+
 bool pljit::Token::isKeyword(std::string_view view) {
     return view == "PARAM" || view == "VAR" || view == "CONST" || view == "BEGIN" || view == "END" || view == "RETURN";
 }
 
 pljit::Token::TokenType pljit::Token::typeOfCharacter(char character) {
     if (isAlphanumeric(character)) {
-        return TokenType::IDENTIFIER; // TODO change to keywords later
+        // TokenType::KEYWORD is handled in `Token::finalize`.
+        return TokenType::IDENTIFIER;
     } else if (isOperator(character)) {
         return TokenType::OPERATOR;
+    } else if (isSeparator(character)) {
+        return TokenType::SEPARATOR;
     } else if (isIntegerLiteral(character)) {
         return TokenType::INTEGER_LITERAL;
     } else if (isParenthesis(character)) {
@@ -126,6 +141,7 @@ pljit::Token::TokenType pljit::Token::getType() const {
 }
 
 pljit::SourceCodeReference pljit::Token::reference() const {
+    assert(type != TokenType::EMPTY && "Can't access the source code reference of an empty token!");
     return source_code;
 }
 
@@ -154,5 +170,27 @@ void pljit::Token::finalize() {
     if (type == TokenType::IDENTIFIER && isKeyword(source_code.content())) {
         type = TokenType::KEYWORD;
     }
+}
+//---------------------------------------------------------------------------
+pljit::Lexer::LexerResult::LexerResult() : source_error(), lexed_token() {}
+pljit::Lexer::LexerResult::LexerResult(pljit::Token token) : source_error(), lexed_token(token) {}
+pljit::Lexer::LexerResult::LexerResult(pljit::SourceCodeError error) : source_error(error), lexed_token() {}
+
+const pljit::Token& pljit::Lexer::LexerResult::token() const {
+    assert(!source_error.has_value() && "LexerResult: token not present. Lexer error occurred!");
+    return lexed_token;
+}
+
+pljit::SourceCodeError pljit::Lexer::LexerResult::error() const {
+    assert(source_error.has_value() && "LexerResult: tried accessing non-existent error!");
+    return *source_error;
+}
+
+bool pljit::Lexer::LexerResult::success() const {
+    return !source_error.has_value();
+}
+
+bool pljit::Lexer::LexerResult::failure() const {
+    return source_error.has_value();
 }
 //---------------------------------------------------------------------------

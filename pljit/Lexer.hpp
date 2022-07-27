@@ -6,6 +6,7 @@
 #define PLJIT_LEXER_HPP
 
 #include "SourceCodeManagement.hpp"
+#include <optional>
 
 //---------------------------------------------------------------------------
 namespace pljit {
@@ -17,14 +18,19 @@ class Token {
         EMPTY,
         KEYWORD,
         IDENTIFIER,
+        SEPARATOR,
         OPERATOR, // TODO plus, minus, etc
         INTEGER_LITERAL,
         PARENTHESIS,
     };
 
     enum class ExtendResult { // TODO docs
+        /// The Token was extended with the given character.
         EXTENDED,
+        /// The Token was not extended. The character was illegal.
         ERRONEOUS_CHARACTER,
+        /// The Token was not extended. The given character doesn't match the given {@class TokenType}.
+        /// The Token should be considered complete and the character should be considered part of a new Token.
         NON_MATCHING_TYPE,
     };
 
@@ -40,7 +46,10 @@ class Token {
     static bool isIntegerLiteral(char character);
     static bool isParenthesis(char character);
     static bool isOperator(char character);
+    static bool isEndOfProgram(char character);
+
     static bool isKeyword(std::string_view view);
+
     static TokenType typeOfCharacter(char character);
 
     Token(); // TODO creates an empty token!
@@ -51,6 +60,11 @@ class Token {
 
     SourceCodeReference reference() const;
 
+    /**
+     * Extends this Token with another character.
+     * @param character An iterator pointing to a character which should be added to the Token.
+     * @return Returns the result of the extend operation.
+     */
     ExtendResult extend(SourceCodeManagement::iterator character);
 
     void finalize();
@@ -60,14 +74,30 @@ class Token {
 };
 //---------------------------------------------------------------------------
 class Lexer {
-    const SourceCodeManagement& management; // TODO reference makes non copyable or movable?
+    const SourceCodeManagement& management; // TODO reference makes non copyable or movable assignment!?
     SourceCodeManagement::iterator current_position;
 
     public:
-    explicit Lexer(const SourceCodeManagement& management);
+    class LexerResult { // TODO consider renaming? (Double "Lexer")
+        std::optional<SourceCodeError> source_error;
+        Token lexed_token;
 
-    bool next(Token& token);
+        public:
+        LexerResult();
+        explicit LexerResult(Token token);
+        explicit LexerResult(SourceCodeError error);
+
+        const Token& token() const;
+        SourceCodeError error() const;
+
+        bool success() const;
+        bool failure() const;
+    };
+
+    explicit Lexer(const SourceCodeManagement& management);
     // TODO remove copy?
+
+    LexerResult next();
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

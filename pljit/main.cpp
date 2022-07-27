@@ -3,6 +3,7 @@
 
 #include "SourceCodeManagement.hpp"
 #include "Lexer.hpp"
+#include <cassert>
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
@@ -29,20 +30,33 @@ int main() {
     pljit::Lexer lexer{management};
 
     while(true) {
-        pljit::Token token;
-        lexer.next(token);
-        print(token);
+        pljit::Lexer::LexerResult result;
+        result = lexer.next();
+        print(result.token());
 
-        token = {};
-        lexer.next(token);
-        print(token);
+        result = lexer.next();
+        print(result.token());
 
-        token.reference().print_error(pljit::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!");
+        auto error = pljit::SourceCodeError(pljit::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.token().reference());
+        error.printCompilerError();
 
-        token = {};
-        lexer.next(token);
-        print(token);
+        result = lexer.next();
+        print(result.token());
 
+        result = lexer.next();
+        print(result.token());
+
+        result = lexer.next();
+        print(result.token());
+
+        result = lexer.next();
+        print(result.token());
+
+        result = lexer.next();
+        print(result.token());
+
+        result = lexer.next();
+        print(result.token());
         break;
     }
 }

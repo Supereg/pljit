@@ -10,6 +10,7 @@
 namespace pljit {
 //---------------------------------------------------------------------------
 class SourceCodeReference;
+class SourceCodeError;
 //---------------------------------------------------------------------------
 class SourceCodeManagement {
     std::string source_code;
@@ -68,10 +69,10 @@ class SourceCodeManagement {
 };
 //---------------------------------------------------------------------------
 class SourceCodeReference {
-    friend SourceCodeManagement::iterator; // allows access to private constructors!
+    friend class SourceCodeManagement::iterator; // allows access to private constructors!
+    friend class SourceCodeError; // allow access to `management` for error printing! TODO coupling?
 
-    const SourceCodeManagement* management; // TODO init in constructors!
-
+    const SourceCodeManagement* management;
     std::string_view string_content;
 
     SourceCodeReference(const SourceCodeManagement* management, std::string_view string_content);
@@ -84,8 +85,27 @@ class SourceCodeReference {
     void extend(int amount);
 
     // TODO replace ERROR; NOTE; WARN with enum type!
-    void print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message) const;
+    // TODO remove: void print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message) const;
     // TODO create version which allows to specify single code point?
+
+    // TODO SourceCodeError generateError() const;
+};
+//---------------------------------------------------------------------------
+class SourceCodeError {
+    SourceCodeManagement::ErrorType errorType;
+    std::string_view errorMessage;
+    SourceCodeReference sourceCodeReference;
+    public:
+
+    SourceCodeError(SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference);
+
+    SourceCodeManagement::ErrorType type() const;
+    std::string_view message() const;
+    const SourceCodeReference& reference() const;
+
+    void printCompilerError() const;
+
+    // TODO API ability to derive line numbers! (also useful for tests!)
 };
 //---------------------------------------------------------------------------
 } // namespace pljit
