@@ -82,13 +82,10 @@ class Token {
     ExtendResult extend(SourceCodeManagement::iterator character);
 
     void finalize();
-
-    // TODO OperatorType operatorType() const; ???
-    // TODO parenthesis type getter?
 };
 //---------------------------------------------------------------------------
 class Lexer {
-    const SourceCodeManagement& management; // TODO reference makes non copyable or movable assignment!?
+    const SourceCodeManagement* management;
     SourceCodeManagement::iterator current_position;
 
     public:
@@ -109,7 +106,6 @@ class Lexer {
     };
 
     explicit Lexer(const SourceCodeManagement& management);
-    // TODO remove copy?
 
     LexerResult next();
 };

@@ -4,7 +4,6 @@
 
 #include "Lexer.hpp"
 #include <cassert>
-#include <iostream> // TODO remove
 
 // TODO AST: no nodes for separators. Still source code references for error printing(?)!
 // TODO -fno-rtti (no run time type information)
@@ -13,12 +12,12 @@
 // TODO using namespace pljit?
 
 //---------------------------------------------------------------------------
-pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(management), current_position(management.begin()) {}
+pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()) {}
 
 pljit::Lexer::LexerResult pljit::Lexer::next() {
     Token token;
 
-    for(; current_position != management.end(); ++current_position) {
+    for(; current_position != management->end(); ++current_position) {
         if (Token::isWhitespace(*current_position)) {
             if (token.isEmpty()) {
                 continue; // we skip whitespaces till we find something!
@@ -30,14 +29,13 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
             return LexerResult{ token };
         } else if (Token::isEndOfProgram(*current_position)) {
             if (!token.isEmpty()) {
-                token.finalize();
-                return LexerResult{ token };
+                break;
             }
 
             // consume the character and check if we this is really the end of the source code!
             ++current_position;
 
-            while (current_position != management.end()) {
+            while (current_position != management->end()) {
                 // we allow whitespaces after the dot, but nothing else!
                 if (!Token::isWhitespace(*current_position)) {
                     SourceCodeError error{
@@ -67,7 +65,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
                 return LexerResult{ error };
             }
             case Token::ExtendResult::END_OF_TOKEN:
-                assert(current_position != management.begin()); // can't be by definition, at least one character was processed.
+                assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
 
                 // we received a character which doesn't match the current token type
                 // we want to parse that character in the next query again (so we don't increment)!
@@ -78,7 +76,11 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
     }
 
     // this is called once we reach the end of the source code.
-    // TODO assert(token.isEmpty() && "Assumption broke in the Lexer implementation!");
+
+    if (!token.isEmpty()) {
+        token.finalize();
+    }
+
     return LexerResult{ token }; // returning an empty token signals end of stream!
 }
 //---------------------------------------------------------------------------

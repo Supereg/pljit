@@ -13,6 +13,9 @@ class SourceCodeReference;
 class SourceCodeError;
 //---------------------------------------------------------------------------
 class SourceCodeManagement {
+    // TODO coupling?
+    friend class SourceCodeError; // access to `print_error`
+
     std::string source_code;
     std::string_view source_code_view;
 
@@ -32,7 +35,6 @@ class SourceCodeManagement {
         using iterator_category = std::bidirectional_iterator_tag;
 
         iterator();
-        // TODO copy consturcotr!
 
         bool operator==(const iterator& other) const;
 
@@ -44,7 +46,6 @@ class SourceCodeManagement {
 
         reference operator*() const;
 
-        // TODO want to derive a SourceCodeReference!
         SourceCodeReference codeReference() const;
     };
 
@@ -54,17 +55,22 @@ class SourceCodeManagement {
     };
 
     explicit SourceCodeManagement(std::string&& source_code);
-    // TODO destructor?
 
+    /// Delete copy construction. We don't want to allow copying the string.
     SourceCodeManagement(const SourceCodeManagement& other) = delete;
+    /// Move constructor.
+    SourceCodeManagement(SourceCodeManagement&& other) = default;
 
+    /// Delete copy assignment. We don't want to allow copying the string.
     SourceCodeManagement& operator=(const SourceCodeManagement& other) = delete;
+    /// Move assignment.
+    SourceCodeManagement& operator=(SourceCodeManagement&& other) = default;
 
     std::string_view content() const;
     iterator begin() const;
     iterator end() const;
 
-    // TODO may this be private/internal?
+    private:
     void print_error(ErrorType type, std::string_view message, const SourceCodeReference& reference) const;
 };
 //---------------------------------------------------------------------------
@@ -83,12 +89,6 @@ class SourceCodeReference {
     std::string_view content() const;
 
     void extend(int amount);
-
-    // TODO replace ERROR; NOTE; WARN with enum type!
-    // TODO remove: void print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message) const;
-    // TODO create version which allows to specify single code point?
-
-    // TODO SourceCodeError generateError() const;
 };
 //---------------------------------------------------------------------------
 class SourceCodeError {
