@@ -47,7 +47,7 @@ void pljit::SourceCodeManagement::print_error(pljit::SourceCodeManagement::Error
         }
     }
 
-    std::string_view name; // TODO method
+    std::string_view name; // TODO move switch to method!
     switch (type) {
         case ErrorType::ERROR:
             name = "error";
