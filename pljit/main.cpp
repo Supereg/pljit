@@ -3,7 +3,6 @@
 
 #include "SourceCodeManagement.hpp"
 #include "Lexer.hpp"
-#include <cassert>
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
@@ -30,33 +29,33 @@ int main() {
     pljit::Lexer lexer{management};
 
     while(true) {
-        pljit::Lexer::LexerResult result;
-        result = lexer.next();
-        print(result.token());
+        pljit::Result<pljit::Token> result;
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        auto error = pljit::SourceCodeError(pljit::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.token().reference());
+        auto error = pljit::SourceCodeError(pljit::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.value().reference());
         error.printCompilerError();
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
 
-        result = lexer.next();
-        print(result.token());
+        result = lexer.consume_next();
+        print(result.value());
         break;
     }
 }

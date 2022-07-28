@@ -8,17 +8,17 @@ using namespace pljit;
 
 #define ASSERT_TOKEN(result, type, exp_content) \
     ASSERT_TRUE((result).success()); \
-    ASSERT_EQ((result).token().getType(), (type)); \
-    ASSERT_EQ((result).token().reference().content(), (exp_content))
+    ASSERT_EQ((result).value().getType(), (type)); \
+    ASSERT_EQ((result).value().reference().content(), (exp_content))
 
 #define ASSERT_NEXT_TOKEN(lexer, result, type, exp_content) \
-    (result) = (lexer).next();                                  \
+    (result) = (lexer).consume_next(); \
     ASSERT_TOKEN(result, type, exp_content)
 
 #define ASSERT_PROGRAM_END(lexer, result) \
-    (result) = (lexer).next(); \
+    (result) = (lexer).consume_next(); \
     ASSERT_TRUE((result).success()); \
-    ASSERT_EQ((result).token().getType(), Token::TokenType::EMPTY)
+    ASSERT_EQ((result).value().getType(), Token::TokenType::EMPTY)
 //---------------------------------------------------------------------------
 TEST(Lexer, testBasicTokens) {
     std::string program = "PARAM width, height, depth;";
@@ -26,7 +26,7 @@ TEST(Lexer, testBasicTokens) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
@@ -46,12 +46,11 @@ TEST(Lexer, testIllegalToken) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
-
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
 
-    result = lexer.next();
+    result = lexer.consume_next();
     ASSERT_TRUE(result.failure());
     result.error().printCompilerError();
     EXPECT_EQ(capture.str(), "1:12: error: unexpected character\n"
@@ -65,7 +64,7 @@ TEST(Lexer, testVar) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "VAR");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
@@ -78,7 +77,7 @@ TEST(Lexer, testConst) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "CONST");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
@@ -95,7 +94,7 @@ TEST(Lexer, testArithmeticExpression) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "23");
@@ -128,7 +127,7 @@ TEST(Lexer, testIdentifierLiteralsConcatenated) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "asdf");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "231");
@@ -151,7 +150,7 @@ TEST(Lexer, testConcatenatedOperators) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
@@ -174,7 +173,7 @@ TEST(Lexer, testConcatenatedParenthesis) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
@@ -196,7 +195,7 @@ TEST(Lexer, testConcatenatedSeparators) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
@@ -214,7 +213,7 @@ TEST(Lexer, testAssignment) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, ":=");
@@ -234,7 +233,7 @@ TEST(Lexer, testReturn) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "RETURN");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
@@ -257,7 +256,7 @@ TEST(Lexer, testWholeProgram) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
@@ -308,7 +307,7 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
-    Lexer::LexerResult result;
+    Result<Token> result;
 
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "BEGIN");
@@ -316,10 +315,36 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "0");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "END");
 
-    result = lexer.next();
+    result = lexer.consume_next();
     ASSERT_TRUE(result.failure());
     result.error().printCompilerError();
     EXPECT_EQ(capture.str(), "4:1: error: unexpected character after end of program terminator!\n"
                              "RETURN 1\n"
                              "^\n");
+}
+
+TEST(Lexer, testPeekNext) {
+    std::string program = "PARAM width, height, depth;";
+
+    SourceCodeManagement management{ std::move(program) };
+    Lexer lexer{ management };
+
+    Result<Token> result;
+
+    result = lexer.peek_next();
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+
+    result = lexer.peek_next();
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+
+    result = lexer.peek_next();
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
+
+    result = lexer.peek_next();
+    ASSERT_TOKEN(result, Token::TokenType::IDENTIFIER, "width");
+
+    result = lexer.peek_next();
+    ASSERT_TOKEN(result, Token::TokenType::IDENTIFIER, "width");
 }

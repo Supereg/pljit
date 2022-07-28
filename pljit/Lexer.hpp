@@ -7,6 +7,7 @@
 
 #include "SourceCodeManagement.hpp"
 #include <optional>
+#include <cassert>
 
 //---------------------------------------------------------------------------
 namespace pljit {
@@ -84,30 +85,46 @@ class Token {
     void finalize();
 };
 //---------------------------------------------------------------------------
+template <typename T> // TODO requires default constructible!
+class Result { // TODO placement!
+    std::optional<pljit::SourceCodeError> source_error;
+    T result_content;
+
+    public:
+    Result() : source_error(), result_content() {}
+    Result(T result) : source_error(), result_content(result) {}
+    Result(SourceCodeError error) : source_error(error), result_content() {}
+
+    const T& value() const {
+        assert(!source_error.has_value() && "Result: result not present. SourceCode error occurred!");
+        return result_content;
+    }
+
+    SourceCodeError error() const {
+        assert(source_error.has_value() && "LexerResult: tried accessing non-existent error!");
+        return *source_error;
+    }
+
+    // TODO prepend with "is" keyword! Both!
+    bool success() const {
+        return !source_error.has_value();
+    }
+
+    bool failure() const {
+        return source_error.has_value();
+    }
+};
+//---------------------------------------------------------------------------
 class Lexer {
     const SourceCodeManagement* management;
     SourceCodeManagement::iterator current_position;
 
     public:
-    class LexerResult { // TODO consider renaming? (Double "Lexer")
-        std::optional<SourceCodeError> source_error;
-        Token lexed_token;
-
-        public:
-        LexerResult();
-        explicit LexerResult(Token token);
-        explicit LexerResult(SourceCodeError error);
-
-        const Token& token() const;
-        SourceCodeError error() const;
-
-        bool success() const;
-        bool failure() const;
-    };
-
     explicit Lexer(const SourceCodeManagement& management);
 
-    LexerResult next();
+    Result<Token> peek_next();
+    Result<Token> consume_next();
+    // Result<Token> next(); // TODO peek_next vs consume_next!
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

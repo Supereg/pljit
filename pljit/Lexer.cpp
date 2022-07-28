@@ -5,7 +5,7 @@
 #include "Lexer.hpp"
 #include <cassert>
 
-// TODO AST: no nodes for separators. Still source code references for error printing(?)!
+// TODO AST: no symbols for separators. Still source code references for error printing(?)!
 // TODO -fno-rtti (no run time type information)
 // TODO optimizations (e.g. with division by zero) -> ensure that the error is still there
 
@@ -14,7 +14,15 @@
 //---------------------------------------------------------------------------
 pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()) {}
 
-pljit::Lexer::LexerResult pljit::Lexer::next() {
+pljit::Result<pljit::Token> pljit::Lexer::peek_next() {
+    auto current_iterator = current_position;
+    auto result = consume_next();
+    current_position = current_iterator;
+
+    return result;
+}
+
+pljit::Result<pljit::Token> pljit::Lexer::consume_next() {
     Token token;
 
     for(; current_position != management->end(); ++current_position) {
@@ -26,7 +34,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
             ++current_position; // consume the whitespace and return the token!
 
             token.finalize();
-            return LexerResult{ token };
+            return token;
         } else if (Token::isEndOfProgram(*current_position)) {
             if (!token.isEmpty()) {
                 break;
@@ -43,7 +51,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
                         "unexpected character after end of program terminator!",
                         current_position.codeReference()
                     };
-                    return LexerResult{ error };
+                    return error;
                 }
 
                 ++current_position;
@@ -62,7 +70,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
                     "unexpected character",
                     current_position.codeReference()
                 };
-                return LexerResult{ error };
+                return error;
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -71,7 +79,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
                 // we want to parse that character in the next query again (so we don't increment)!
 
                 token.finalize();
-                return LexerResult{ token };
+                return token;
         }
     }
 
@@ -81,7 +89,7 @@ pljit::Lexer::LexerResult pljit::Lexer::next() {
         token.finalize();
     }
 
-    return LexerResult{ token }; // returning an empty token signals end of stream!
+    return token; // returning an empty token signals end of stream!
 }
 //---------------------------------------------------------------------------
 pljit::Token::Token() : type(TokenType::EMPTY), source_code() {}
@@ -191,27 +199,5 @@ void pljit::Token::finalize() {
     if (type == TokenType::IDENTIFIER && isKeyword(source_code.content())) {
         type = TokenType::KEYWORD;
     }
-}
-//---------------------------------------------------------------------------
-pljit::Lexer::LexerResult::LexerResult() : source_error(), lexed_token() {}
-pljit::Lexer::LexerResult::LexerResult(pljit::Token token) : source_error(), lexed_token(token) {}
-pljit::Lexer::LexerResult::LexerResult(pljit::SourceCodeError error) : source_error(error), lexed_token() {}
-
-const pljit::Token& pljit::Lexer::LexerResult::token() const {
-    assert(!source_error.has_value() && "LexerResult: token not present. Lexer error occurred!");
-    return lexed_token;
-}
-
-pljit::SourceCodeError pljit::Lexer::LexerResult::error() const {
-    assert(source_error.has_value() && "LexerResult: tried accessing non-existent error!");
-    return *source_error;
-}
-
-bool pljit::Lexer::LexerResult::success() const {
-    return !source_error.has_value();
-}
-
-bool pljit::Lexer::LexerResult::failure() const {
-    return source_error.has_value();
 }
 //---------------------------------------------------------------------------

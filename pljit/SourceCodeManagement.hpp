@@ -59,12 +59,12 @@ class SourceCodeManagement {
     /// Delete copy construction. We don't want to allow copying the string.
     SourceCodeManagement(const SourceCodeManagement& other) = delete;
     /// Move constructor.
-    SourceCodeManagement(SourceCodeManagement&& other) = default;
+    SourceCodeManagement(SourceCodeManagement&& other) noexcept = default;
 
     /// Delete copy assignment. We don't want to allow copying the string.
     SourceCodeManagement& operator=(const SourceCodeManagement& other) = delete;
     /// Move assignment.
-    SourceCodeManagement& operator=(SourceCodeManagement&& other) = default;
+    SourceCodeManagement& operator=(SourceCodeManagement&& other) noexcept = default;
 
     std::string_view content() const;
     iterator begin() const;
