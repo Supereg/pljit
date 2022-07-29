@@ -7,6 +7,7 @@
 
 #include "SourceCodeManagement.hpp"
 #include "Lexer.hpp"
+#include "Result.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -49,6 +50,8 @@ class Literal: public Symbol {
 };
 
 class PrimaryExpression: public Symbol {
+    friend class pljit::Parser;
+
     /// Describes the content type of the `symbols` property.
     enum class Type {
         NONE, // TODO NONE types?
@@ -68,7 +71,9 @@ class PrimaryExpression: public Symbol {
 };
 
 class UnaryExpression: public Symbol {
-    GenericTerminal unaryOperator;
+    friend class pljit::Parser; // TODO can we avoid all the friend definitions in this file?
+
+    std::optional<GenericTerminal> unaryOperator;
     PrimaryExpression primaryExpression;
 
     public:
@@ -77,6 +82,8 @@ class UnaryExpression: public Symbol {
 
 
 class MultiplicativeExpression: public Symbol {
+    friend class pljit::Parser;
+
     UnaryExpression expression;
     std::vector<std::tuple<GenericTerminal, MultiplicativeExpression>> optionalOperand;
 
@@ -85,6 +92,8 @@ class MultiplicativeExpression: public Symbol {
 };
 
 class AdditiveExpression: public Symbol {
+    friend class pljit::Parser;
+
     MultiplicativeExpression expression;
 
     std::vector<std::tuple<GenericTerminal, AdditiveExpression>> optionalOperand;
@@ -94,6 +103,8 @@ class AdditiveExpression: public Symbol {
 };
 
 class AssignmentExpression: public Symbol {
+    friend class pljit::Parser;
+
     Identifier identifier;
     GenericTerminal assignmentOperator; // `:=`
     AdditiveExpression additiveExpression;
@@ -103,6 +114,8 @@ class AssignmentExpression: public Symbol {
 };
 
 class Statement: public Symbol {
+    friend class pljit::Parser;
+
     /// Describes the content type of the `symbols` property.
     enum class Type {
         NONE,
@@ -121,6 +134,8 @@ class Statement: public Symbol {
 };
 
 class StatementList: public Symbol {
+    friend class pljit::Parser;
+
     Statement statement;
     std::vector<std::tuple<GenericTerminal, Statement>> additionalStatements;
 
@@ -129,6 +144,8 @@ class StatementList: public Symbol {
 };
 
 class CompoundStatement: public Symbol {
+    friend class pljit::Parser;
+
     GenericTerminal beginKeyword;
     StatementList statementList;
     GenericTerminal endKeyword;
@@ -138,6 +155,8 @@ class CompoundStatement: public Symbol {
 };
 
 class InitDeclarator: public Symbol {
+    friend class pljit::Parser;
+
     Identifier identifier;
     GenericTerminal assignmentOperator; // `=`
     Literal literal;
@@ -147,6 +166,8 @@ class InitDeclarator: public Symbol {
 };
 
 class InitDeclaratorList: public Symbol {
+    friend class pljit::Parser;
+
     InitDeclarator initDeclarator;
     std::vector<std::tuple<GenericTerminal, InitDeclarator>> additionalInitDeclarators;
 
@@ -155,6 +176,8 @@ class InitDeclaratorList: public Symbol {
 };
 
 class DeclaratorList: public Symbol {
+    friend class pljit::Parser;
+
     Identifier identifier;
     std::vector<std::tuple<GenericTerminal, Identifier>> additionalIdentifiers;
 
@@ -226,16 +249,35 @@ class Parser { // TODO "RecursiveDescentParser"
     Result<ParseTree::FunctionDefinition> parse() const;
 
     private:
-    std::optional<SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination) const;
 
-    std::optional<SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination) const;
-    std::optional<SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination) const;
-    std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const;
 
-    std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination) const;
-    std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination) const;
 
-    std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseStatementList(ParseTree::StatementList& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseStatement(ParseTree::Statement& destination) const;
+
+    [[nodiscard]] std::optional<SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination) const;
+
+    [[nodiscard]] std::optional<SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination) const;
+
+    [[nodiscard]] std::optional<SourceCodeError> parseIdentifier(ParseTree::Identifier& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseLiteral(ParseTree::Literal& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseGenericTerminal(
+        ParseTree::GenericTerminal& destination,
+        Token::TokenType expected_type,
+        std::string_view expected_content,
+        std::string_view potential_error_message
+    ) const;
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

@@ -13,14 +13,14 @@ Result<ParseTree::FunctionDefinition> Parser::parse() const { // TODO whats the 
     ParseTree::FunctionDefinition definition;
     auto maybeError = parseFunctionDefinition(definition);
     if (maybeError.has_value()) {
-        return maybeError.value();
+        return *maybeError;
     }
 
     return definition;
 }
+
 std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::FunctionDefinition& destination) const {
     Result<Token> result;
-    std::optional<SourceCodeError> error;
 
     result = lexer->peek_next(); // TODO make EMPTY token an error!
     if (result.failure()) {
@@ -28,9 +28,9 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
     }
 
 
-    if (result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "PARAM") {
-        error = parseParameterDeclarations(destination.parameterDeclarations);
-        if (error.has_value()) {
+    if (result->is(Token::TokenType::KEYWORD, Keyword::PARAM)) {
+        if (auto error = parseParameterDeclarations(destination.parameterDeclarations);
+            error.has_value()) {
             return error;
         }
     }
@@ -40,9 +40,9 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
         return result.error();
     }
 
-    if (result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "VAR") {
-        error = parseVariableDeclarations(destination.variableDeclarations);
-        if (error.has_value()) {
+    if (result->is(Token::TokenType::KEYWORD, Keyword::VAR)) {
+        if (auto error = parseVariableDeclarations(destination.variableDeclarations);
+            error.has_value()) {
             return error;
         }
     }
@@ -52,9 +52,9 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
         return result.error();
     }
 
-    if (result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "CONST") {
-        error = parseConstantDeclarations(destination.constantDeclarations);
-        if (error.has_value()) {
+    if (result->is(Token::TokenType::KEYWORD, Keyword::CONST)) {
+        if (auto error = parseConstantDeclarations(destination.constantDeclarations);
+            error.has_value()) {
             return error;
         }
     }
@@ -64,16 +64,16 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
         return result.error();
     }
 
-    if (result.value().getType() != Token::TokenType::KEYWORD) {
-        // TODO error message (make it a member function?)
-        return SourceCodeError{
+    if (result->getType() != Token::TokenType::KEYWORD) {
+        return result->makeError(
             SourceCodeManagement::ErrorType::ERROR,
-            "Expected one of the following keywords `PARAM`, `VAR`, `CONST` or `BEGIN`!",
-            result.value().reference()
-        };
+            "Expected one of the following keywords `PARAM`, `VAR`, `CONST` or `BEGIN`!");
     }
 
-    parseCompoundStatement(destination.compoundStatement);
+    if (auto error = parseCompoundStatement(destination.compoundStatement);
+        error.has_value()) {
+        return error;
+    }
 
     // TODO assert end of program! (assert program terminator!)
     return {};
@@ -81,41 +81,23 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
 
 std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination) const {
     ParseTree::ParameterDeclarations declarations;
-    Result<Token> result;
 
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    // TODO we would also need to check for an EMPTY Token?
+
+    if (auto error = parseGenericTerminal(destination->paramKeyword, Token::TokenType::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
+        error.has_value()) {
+        return error;
     }
 
-    // TODO make a method for that pattern?
-    if (!(result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "PARAM")) {
-        // TODO we could just assert that!
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected `PARAM` keyword",
-            result.value().reference() // TODO we would also need to check for an EMPTY?
-        };
+    if (auto error = parseDeclaratorList(declarations.declaratorList);
+        error.has_value()) {
+        return error;
     }
 
-    declarations.paramKeyword = { result.value().reference() };
-
-    parseDeclaratorList(declarations.declaratorList);
-
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+        error.has_value()) {
+        return error;
     }
-
-    if (!(result.value().getType() == Token::TokenType::SEPARATOR && result.value().reference().content() == ";")) {
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected `;` separator",
-            result.value().reference() // TODO we would also need to check for an EMPTY?
-        };
-    }
-
-    declarations.semicolon = { result.value().reference() };
 
     destination = declarations;
     return {};
@@ -124,40 +106,21 @@ std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<
 std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination) const {
     // TODO this is pretty much a code duplication!
     ParseTree::VariableDeclarations declarations;
-    Result<Token> result;
 
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    if (auto error = parseGenericTerminal(destination->varKeyword, Token::TokenType::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
+        error.has_value()) {
+        return error;
     }
 
-    if (!(result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "VAR")) {
-        // TODO we could just assert that!
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected `VAR` keyword",
-            result.value().reference() // TODO we would also need to check for an EMPTY?
-        };
+    if (auto error = parseDeclaratorList(declarations.declaratorList);
+        error.has_value()) {
+        return error;
     }
 
-    declarations.varKeyword = { result.value().reference() };
-
-    parseDeclaratorList(declarations.declaratorList);
-
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+        error.has_value()) {
+        return error;
     }
-
-    if (!(result.value().getType() == Token::TokenType::SEPARATOR && result.value().reference().content() == ";")) {
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected `;` separator",
-            result.value().reference() // TODO we would also need to check for an EMPTY?
-        };
-    }
-
-    declarations.semicolon = { result.value().reference() };
 
     destination = declarations;
     return {};
@@ -166,54 +129,33 @@ std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<P
 std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const {
     // TODO code duplication;
     ParseTree::ConstantDeclarations declarations;
-    Result<Token> result;
 
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    if (auto error = parseGenericTerminal(destination->constKeyword, Token::TokenType::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
+        error.has_value()) {
+        return error;
     }
 
-    assert(result.value().getType() == Token::TokenType::KEYWORD && result.value().reference().content() == "CONST");
-
-    // TODO do implicit construction?
-    declarations.constKeyword = { result.value().reference() };
-
-    parseInitDeclaratorList(declarations.initDeclaratorList);
-
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
+    if (auto error = parseInitDeclaratorList(declarations.initDeclaratorList);
+        error.has_value()) {
+        return error;
     }
 
-    if (!(result.value().getType() == Token::TokenType::SEPARATOR && result.value().reference().content() == ";")) {
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected `;` separator",
-            result.value().reference() // TODO we would also need to check for an EMPTY?
-        };
+    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+        error.has_value()) {
+        return error;
     }
-
-    declarations.semicolon = { result.value().reference() };
 
     destination = declarations;
     return {};
 }
 
 std::optional<SourceCodeError> Parser::parseDeclaratorList(ParseTree::DeclaratorList& destination) const {
+    if (auto error = parseIdentifier(destination.identifier);
+        error.has_value()) {
+        return error;
+    }
+
     Result<Token> result;
-
-    result = lexer->consume_next();
-    if (result.failure()) {
-        return result.error();
-    }
-
-    if (result.value().getType() != Token::TokenType::IDENTIFIER) {
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected identifier",
-            result.value().reference()
-        };
-    }
 
     while (true) {
         result = lexer->peek_next();
@@ -221,13 +163,277 @@ std::optional<SourceCodeError> Parser::parseDeclaratorList(ParseTree::Declarator
             return result.error();
         }
 
-        if (!(result.value().getType() == Token::TokenType::SEPARATOR && result.value().reference().content() == ",")) {
+        if (!result->is(Token::TokenType::SEPARATOR, Separator::COMMA)) {
             break;
         }
 
-        // TODO mark already peeked result as consumed!
+        // mark token as consumed!
+        lexer->consume(*result);
+
+        ParseTree::Identifier identifier;
+        if (auto error = parseIdentifier(identifier);
+            error.has_value()) {
+            return error;
+        }
+
+        // TODO implicit constructor a good idea?
+        destination.additionalIdentifiers.emplace_back(result->reference(), identifier);
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const {
+    if (auto error = parseInitDeclarator(destination.initDeclarator);
+        error.has_value()) {
+        return error;
+    }
+
+    Result<Token> result;
+    while (true) {
+        result = lexer->peek_next();
+        if (result.failure()) {
+            return result.error();
+        }
+
+        if (!result->is(Token::TokenType::SEPARATOR, Separator::COMMA)) {
+            break;
+        }
+
+        // mark token as consumed!
+        lexer->consume(*result);
+
+        ParseTree::InitDeclarator declarator;
+        if (auto error = parseInitDeclarator(declarator);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.additionalInitDeclarators.emplace_back(result->reference(), declarator);
+    }
+}
+
+std::optional<SourceCodeError> Parser::parseInitDeclarator(ParseTree::InitDeclarator& destination) const {
+    if (auto error = parseIdentifier(destination.identifier);
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseGenericTerminal(destination.assignmentOperator, Token::TokenType::OPERATOR, Operator::INIT, "Expected `=` operator!");
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseLiteral(destination.literal);
+        error.has_value()) {
+        return error;
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseCompoundStatement(ParseTree::CompoundStatement& destination) const {
+    if (auto error = parseGenericTerminal(destination.beginKeyword, Token::TokenType::KEYWORD, Keyword::BEGIN, "Expected `BEGIN` keyword!");
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseStatementList(destination.statementList);
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseGenericTerminal(destination.endKeyword, Token::TokenType::KEYWORD, Keyword::END, "Expected `END` keyword!");
+        error.has_value()) {
+        return error;
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseStatementList(ParseTree::StatementList& destination) const {
+    if (auto error = parseStatement(destination.statement);
+        error.has_value()) {
+        return error;
+    }
+
+    Result<Token> result;
+    while (true) {
+        result = lexer->peek_next();
+        if (result.failure()) {
+            return result.error();
+        }
+
+        if (!result->is(Token::TokenType::SEPARATOR, Separator::SEMICOLON)) {
+            break;
+        }
+
+        lexer->consume(*result);
+
+        ParseTree::Statement statement;
+        if (auto error = parseStatement(statement);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.additionalStatements.emplace_back(result->reference(), std::move(statement));
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseStatement(ParseTree::Statement& destination) const {
+    Result<Token> result;
+
+    result = lexer->peek_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->is(Token::TokenType::KEYWORD, Keyword::RETURN)) {
 
     }
+    // TODO parse statment! with vector and ptr!
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseAssignmentExpression(ParseTree::AssignmentExpression& destination) const {
+    if (auto error = parseIdentifier(destination.identifier);
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseGenericTerminal(destination.assignmentOperator, Token::TokenType::OPERATOR, Operator::ASSIGNMENT, "Expected `:=` operator!");
+        error.has_value()) {
+        return error;
+    }
+
+    if (auto error = parseAdditiveExpression(destination.additiveExpression);
+        error.has_value()) {
+        return error;
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parseAdditiveExpression(ParseTree::AdditiveExpression& destination) const {
+    if (auto error = parseMultiplicativeExpression(destination.expression);
+        error.has_value()) {
+        return error;
+    }
+
+    Result<Token> result;
+
+    result = lexer->peek_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->is(Token::TokenType::OPERATOR, Operator::PLUS) || result->is(Token::TokenType::OPERATOR, Operator::MINUS)) {
+        lexer->consume(*result);
+
+        ParseTree::AdditiveExpression additiveExpression;
+
+        if (auto error = parseAdditiveExpression(additiveExpression);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.optionalOperand.emplace_back(result->reference(), std::move(additiveExpression));
+    }
+
+    return {};
+}
+std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination) const {
+    if (auto error = parseUnaryExpression(destination.expression);
+        error.has_value()) {
+        return error;
+    }
+
+    Result<Token> result;
+
+    result = lexer->peek_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->is(Token::TokenType::OPERATOR, Operator::MULTIPLICATION) || result->is(Token::TokenType::OPERATOR, Operator::DIVISION)) {
+        lexer->consume(*result);
+
+        ParseTree::MultiplicativeExpression multiplicativeExpression;
+
+        if (auto error = parseMultiplicativeExpression(multiplicativeExpression);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.optionalOperand.emplace_back(result->reference(), std::move(multiplicativeExpression));
+    }
+
+    return {};
+}
+std::optional<SourceCodeError> Parser::parseUnaryExpression(ParseTree::UnaryExpression& destination) const {
+    Result<Token> result;
+
+    result = lexer->peek_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->is(Token::TokenType::OPERATOR, Operator::PLUS) || result->is(Token::TokenType::OPERATOR, Operator::MINUS)) {
+        destination.unaryOperator = result->reference();
+    }
+
+    if (auto error = parsePrimaryExpression(destination.primaryExpression);
+        error.has_value()) {
+        return error;
+    }
+
+    return {};
+}
+
+std::optional<SourceCodeError> Parser::parsePrimaryExpression(ParseTree::PrimaryExpression& destination) const {
+    return std::optional<SourceCodeError>();
+}
+
+std::optional<SourceCodeError> Parser::parseIdentifier(ParseTree::Identifier& destination) const {
+    Result<Token> result;
+
+    result = lexer->consume_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->getType() != Token::TokenType::IDENTIFIER) {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected identifier!");
+    }
+
+    destination = result->reference();
+    return {};
+}
+std::optional<SourceCodeError> Parser::parseLiteral(ParseTree::Literal& destination) const {
+    return std::optional<SourceCodeError>();
+}
+std::optional<SourceCodeError> Parser::parseGenericTerminal(
+    ParseTree::GenericTerminal& destination,
+    Token::TokenType expected_type,
+    std::string_view expected_content, // NOLINT(bugprone-easily-swappable-parameters)
+    std::string_view potential_error_message
+) const {
+    Result<Token> result;
+
+    result = lexer->consume_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (!result->is(expected_type, expected_content)) {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, potential_error_message);
+    }
+
+    destination = result->reference();
+    return {};
 }
 //---------------------------------------------------------------------------
 

@@ -141,6 +141,11 @@ void pljit::SourceCodeReference::extend(int amount) {
 
     string_content = { string_content.data(), string_content.size() + amount };
 }
+
+bool pljit::SourceCodeReference::operator==(const pljit::SourceCodeReference& rhs) const {
+    return management == rhs.management &&
+        string_content == rhs.string_content;
+}
 //---------------------------------------------------------------------------
 pljit::SourceCodeError::SourceCodeError(pljit::SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, pljit::SourceCodeReference sourceCodeReference)
     : errorType(errorType), errorMessage(errorMessage), sourceCodeReference(sourceCodeReference) {}
@@ -159,5 +164,11 @@ const pljit::SourceCodeReference& pljit::SourceCodeError::reference() const {
 
 void pljit::SourceCodeError::printCompilerError() const {
     sourceCodeReference.management->print_error(errorType, errorMessage, sourceCodeReference);
+}
+
+bool pljit::SourceCodeError::operator==(const pljit::SourceCodeError& rhs) const {
+    return errorType == rhs.errorType &&
+        errorMessage == rhs.errorMessage &&
+        sourceCodeReference == rhs.sourceCodeReference;
 }
 //---------------------------------------------------------------------------

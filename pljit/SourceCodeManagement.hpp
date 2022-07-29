@@ -8,6 +8,8 @@
 
 //---------------------------------------------------------------------------
 namespace pljit {
+// TODO introduce "src" namespace!
+
 //---------------------------------------------------------------------------
 class SourceCodeReference;
 class SourceCodeError;
@@ -49,7 +51,7 @@ class SourceCodeManagement {
         SourceCodeReference codeReference() const;
     };
 
-    enum class ErrorType {
+    enum class ErrorType { // TODO move the error type!
         NOTE,
         ERROR,
     };
@@ -89,6 +91,8 @@ class SourceCodeReference {
     std::string_view content() const;
 
     void extend(int amount);
+
+    bool operator==(const SourceCodeReference& rhs) const;
 };
 //---------------------------------------------------------------------------
 class SourceCodeError {
@@ -105,6 +109,7 @@ class SourceCodeError {
 
     void printCompilerError() const;
 
+    bool operator==(const SourceCodeError& rhs) const;
     // TODO API ability to derive line numbers! (also useful for tests!)
 };
 //---------------------------------------------------------------------------

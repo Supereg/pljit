@@ -6,11 +6,46 @@
 #define PLJIT_LEXER_HPP
 
 #include "SourceCodeManagement.hpp"
+#include "Result.hpp"
 #include <optional>
 #include <cassert>
 
 //---------------------------------------------------------------------------
 namespace pljit {
+//---------------------------------------------------------------------------
+struct Keyword {
+    static constexpr std::string_view PARAM = "PARAM";
+    static constexpr std::string_view VAR = "VAR";
+    static constexpr std::string_view CONST = "CONST";
+    static constexpr std::string_view BEGIN = "BEGIN";
+    static constexpr std::string_view END = "END";
+    static constexpr std::string_view RETURN = "RETURN";
+};
+
+struct Operator {
+    static constexpr std::string_view PLUS = "+";
+    static constexpr std::string_view MINUS = "-";
+    static constexpr std::string_view MULTIPLICATION = "*";
+    static constexpr std::string_view DIVISION = "/";
+    static constexpr std::string_view INIT = "=";
+    static constexpr std::string_view ASSIGNMENT = ":=";
+};
+
+struct Parenthesis {
+    static constexpr std::string_view ROUND_OPEN = "(";
+    static constexpr std::string_view ROUND_CLOSE = ")";
+};
+
+struct Separator {
+    static constexpr std::string_view COMMA = ",";
+    static constexpr std::string_view SEMICOLON = ";";
+};
+
+struct Whitespace {
+    static constexpr std::string_view SPACE = " ";
+    static constexpr std::string_view TAB = "\t";
+    static constexpr std::string_view NEW_LINE = "\n";
+};
 //---------------------------------------------------------------------------
 class Token {
     public:
@@ -73,7 +108,33 @@ class Token {
 
     TokenType getType() const;
 
+    /**
+     * Get access to the source code of the `Token`.
+     * @return Returns the {@class SourceCodeReference} of the Token.
+     */
     SourceCodeReference reference() const;
+
+    /**
+     * Shorthand way to create a {@class SourceCodeError} at the current {@class SourceCodeReference}.
+     * @param errorType The {@class SourceCodeManagement::ErrorType}.
+     * @param message The view to the error message.
+     * @return The created {@class SourceCodeError} with the given type and message.
+     */
+    SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+
+    /**
+     * Access to the Token's source code content.
+     * @return `string_view` of the source code content.
+     */
+    std::string_view content() const;
+
+    /**
+     * Shorthand version to check the {@class TokenType} and Token content of the Token.
+     * @param type The {@class TokenType}.
+     * @param content The string representation of the Token content.
+     * @return True if both of the passed parameter matches the Token.
+     */
+    bool is(TokenType token_type, std::string_view content) const;
 
     /**
      * Extends this Token with another character.
@@ -83,49 +144,44 @@ class Token {
     ExtendResult extend(SourceCodeManagement::iterator character);
 
     void finalize();
-};
-//---------------------------------------------------------------------------
-template <typename T> requires std::constructible_from<T> && std::move_constructible<T>
-class Result { // TODO placement!
-    std::optional<pljit::SourceCodeError> source_error;
-    T result_content;
 
-    // TODO out of line definition!
-    public:
-    Result() : source_error(), result_content() {}
-    Result(T result) : source_error(), result_content(std::move(result)) {}
-    Result(SourceCodeError error) : source_error(error), result_content() {}
-
-    const T& value() const {
-        assert(!source_error.has_value() && "Result: result not present. SourceCode error occurred!");
-        return result_content;
-    }
-
-    SourceCodeError error() const {
-        assert(source_error.has_value() && "LexerResult: tried accessing non-existent error!");
-        return *source_error;
-    }
-
-    // TODO prepend with "is" keyword! Both!
-    bool success() const {
-        return !source_error.has_value();
-    }
-
-    bool failure() const {
-        return source_error.has_value();
-    }
+    bool operator==(const Token& rhs) const;
 };
 //---------------------------------------------------------------------------
 class Lexer {
     const SourceCodeManagement* management;
     SourceCodeManagement::iterator current_position;
 
+    /// Temporary variable to store Result instances that were peeked but not yet consumed!
+    std::optional<Result<Token>> next_result;
+    bool returnedWithError; // TODO also store error!
+
     public:
     explicit Lexer(const SourceCodeManagement& management);
 
+    /**
+     * Peeks the next `Token`.
+     * Peeking will parse the next `Token` without advancing the reader index.
+     * Repeatedly calling `peek_next()` will always result in the same `Token`.
+     * See {@link consume_next()}.
+     * @return The next `Token` without consuming it.
+     */
     Result<Token> peek_next();
+    /**
+     * Consumes the next `Token`.
+     * Consuming means, parsing the next `Token` and advancing the reader index
+     * to the token coming after the returned result.
+     * @return The next `Token` by consuming it.
+     */
     Result<Token> consume_next();
-    // Result<Token> next(); // TODO peek_next vs consume_next!
+    /**
+     * Consume can be used to consume the token read previously with {@link peek_next()}.
+     * @param result The `
+     */
+    void consume(const Token& result);
+
+    private:
+    Result<Token> next();
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

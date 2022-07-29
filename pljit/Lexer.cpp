@@ -12,18 +12,48 @@
 // TODO using namespace pljit?
 
 //---------------------------------------------------------------------------
-pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()) {}
+pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()), returnedWithError(false) {}
 
 pljit::Result<pljit::Token> pljit::Lexer::peek_next() {
-    auto current_iterator = current_position;
-    auto result = consume_next();
-    current_position = current_iterator;
+    if (next_result.has_value()) {
+        return *next_result;
+    }
 
-    return result;
+    next_result = next();
+    // we mark `returnedWithError` only when calling `consume_next` or `consume`.
+    return *next_result;
 }
 
 pljit::Result<pljit::Token> pljit::Lexer::consume_next() {
+    if (next_result.has_value()) {
+        Result<Token> result = *next_result;
+        next_result.reset();
+        return result;
+    }
+
+    Result<Token> result = next();
+    if (result.failure()) {
+        returnedWithError = true;
+    }
+    return result;
+}
+
+void pljit::Lexer::consume(const pljit::Token& result) {
+    assert(next_result.has_value() && "Tried to consume Token when nothing was peeked!");
+    assert(next_result->success() && "Tried to consume Token in erroneous state!");
+    assert(next_result->value() == result && "Tried consuming unexpected Token!");
+
+    if (next_result->failure()) {
+        returnedWithError = true;
+    }
+
+    next_result.reset();
+}
+
+pljit::Result<pljit::Token> pljit::Lexer::next() {
     Token token;
+
+    assert(!returnedWithError && "Can't continue lexicographical analysis after encountering an error!");
 
     for(; current_position != management->end(); ++current_position) {
         if (Token::isWhitespace(*current_position)) {
@@ -36,7 +66,7 @@ pljit::Result<pljit::Token> pljit::Lexer::consume_next() {
             token.finalize();
             return token;
         } else if (Token::isEndOfProgram(*current_position)) {
-            if (!token.isEmpty()) {
+            if (!token.isEmpty()) { // TODO return this as a Token; return EndOfStream as an error!
                 break;
             }
 
@@ -119,11 +149,11 @@ bool pljit::Token::isOperator(char character) {
 }
 
 bool pljit::Token::isEndOfProgram(char character) {
-    return character == '.';
+    return character == '.'; // TODO introduce constexpr for it!
 }
 
 bool pljit::Token::isKeyword(std::string_view view) {
-    return view == "PARAM" || view == "VAR" || view == "CONST" || view == "BEGIN" || view == "END" || view == "RETURN";
+    return view == Keyword::PARAM || view == Keyword::VAR || view == Keyword::CONST || view == Keyword::BEGIN || view == Keyword::END || view == Keyword::RETURN;
 }
 
 pljit::Token::TokenType pljit::Token::typeOfCharacter(char character) {
@@ -154,6 +184,18 @@ pljit::Token::TokenType pljit::Token::getType() const {
 pljit::SourceCodeReference pljit::Token::reference() const {
     assert(type != TokenType::EMPTY && "Can't access the source code reference of an empty token!");
     return source_code;
+}
+
+pljit::SourceCodeError pljit::Token::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
+    return { errorType, message, reference() };
+}
+
+std::string_view pljit::Token::content() const {
+    return reference().content();
+}
+
+bool pljit::Token::is(pljit::Token::TokenType token_type, std::string_view content) const {
+    return type == token_type && source_code.content() == content;
 }
 
 pljit::Token::ExtendResult pljit::Token::extend(pljit::SourceCodeManagement::iterator character) {
@@ -195,9 +237,15 @@ pljit::Token::ExtendResult pljit::Token::extend(pljit::SourceCodeManagement::ite
     source_code.extend(1);
     return ExtendResult::EXTENDED;
 }
+
 void pljit::Token::finalize() {
     if (type == TokenType::IDENTIFIER && isKeyword(source_code.content())) {
         type = TokenType::KEYWORD;
     }
+}
+
+bool pljit::Token::operator==(const pljit::Token& rhs) const {
+    return type == rhs.type &&
+        source_code == rhs.source_code;
 }
 //---------------------------------------------------------------------------
