@@ -29,8 +29,7 @@ int main() {
     pljit::Lexer lexer{management};
 
     while(true) {
-        pljit::Result<pljit::Token> result;
-        result = lexer.consume_next();
+        pljit::Result<pljit::Token> result = lexer.consume_next();
         print(result.value());
 
         result = lexer.consume_next();

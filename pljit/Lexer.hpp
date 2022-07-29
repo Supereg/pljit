@@ -85,14 +85,15 @@ class Token {
     void finalize();
 };
 //---------------------------------------------------------------------------
-template <typename T> // TODO requires default constructible!
+template <typename T> requires std::constructible_from<T> && std::move_constructible<T>
 class Result { // TODO placement!
     std::optional<pljit::SourceCodeError> source_error;
     T result_content;
 
+    // TODO out of line definition!
     public:
     Result() : source_error(), result_content() {}
-    Result(T result) : source_error(), result_content(result) {}
+    Result(T result) : source_error(), result_content(std::move(result)) {}
     Result(SourceCodeError error) : source_error(error), result_content() {}
 
     const T& value() const {

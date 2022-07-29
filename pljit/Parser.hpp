@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <concepts> // TODO required?
 
 namespace pljit {
 class Parser;
@@ -33,16 +34,24 @@ class GenericTerminal : public Symbol {
 
 class Identifier: public Symbol {
     SourceCodeReference reference;
+    public:
+    Identifier();
+    Identifier(SourceCodeReference reference);
 };
 
 class Literal: public Symbol {
     SourceCodeReference reference;
     long long literalValue; // 64-bit integer
+
+    public:
+    Literal();
+    Literal(SourceCodeReference reference, long long literalValue);
 };
 
 class PrimaryExpression: public Symbol {
     /// Describes the content type of the `symbols` property.
     enum class Type {
+        NONE, // TODO NONE types?
         /// PrimaryExpression contains a single instance of `Identifier`
         IDENTIFIER,
         /// PrimaryExpression contains a single instance of `Literal`
@@ -53,29 +62,44 @@ class PrimaryExpression: public Symbol {
 
     Type type;
     std::vector<std::unique_ptr<Symbol>> symbols;
+
+    public:
+    PrimaryExpression();
 };
 
 class UnaryExpression: public Symbol {
     GenericTerminal unaryOperator;
     PrimaryExpression primaryExpression;
+
+    public:
+    UnaryExpression();
 };
 
 
 class MultiplicativeExpression: public Symbol {
     UnaryExpression expression;
     std::vector<std::tuple<GenericTerminal, MultiplicativeExpression>> optionalOperand;
+
+    public:
+    MultiplicativeExpression();
 };
 
 class AdditiveExpression: public Symbol {
     MultiplicativeExpression expression;
 
     std::vector<std::tuple<GenericTerminal, AdditiveExpression>> optionalOperand;
+
+    public:
+    AdditiveExpression();
 };
 
 class AssignmentExpression: public Symbol {
     Identifier identifier;
     GenericTerminal assignmentOperator; // `:=`
     AdditiveExpression additiveExpression;
+
+    public:
+    AssignmentExpression();
 };
 
 class Statement: public Symbol {
@@ -89,7 +113,8 @@ class Statement: public Symbol {
     };
 
     Type type;
-    // TODO what the hell! std::vector<std::unique_ptr<Symbol>> symbols;
+    // TODO what the hell!
+    std::vector<std::unique_ptr<Symbol>> symbols;
 
     public:
     Statement();
@@ -116,16 +141,25 @@ class InitDeclarator: public Symbol {
     Identifier identifier;
     GenericTerminal assignmentOperator; // `=`
     Literal literal;
+
+    public:
+    InitDeclarator();
 };
 
 class InitDeclaratorList: public Symbol {
     InitDeclarator initDeclarator;
     std::vector<std::tuple<GenericTerminal, InitDeclarator>> additionalInitDeclarators;
+
+    public:
+    InitDeclaratorList();
 };
 
 class DeclaratorList: public Symbol {
     Identifier identifier;
     std::vector<std::tuple<GenericTerminal, Identifier>> additionalIdentifiers;
+
+    public:
+    DeclaratorList();
 };
 
 class ConstantDeclarations: public Symbol {
@@ -134,6 +168,9 @@ class ConstantDeclarations: public Symbol {
     GenericTerminal constKeyword;
     InitDeclaratorList initDeclaratorList;
     GenericTerminal semicolon;
+
+    public:
+    ConstantDeclarations();
 };
 
 class VariableDeclarations: public Symbol {
@@ -142,6 +179,9 @@ class VariableDeclarations: public Symbol {
     GenericTerminal varKeyword;
     DeclaratorList declaratorList;
     GenericTerminal semicolon;
+
+    public:
+    VariableDeclarations();
 };
 
 class ParameterDeclarations: public Symbol {
@@ -150,6 +190,9 @@ class ParameterDeclarations: public Symbol {
     GenericTerminal paramKeyword;
     DeclaratorList declaratorList;
     GenericTerminal semicolon;
+
+    public:
+    ParameterDeclarations();
 };
 
 class FunctionDefinition: public Symbol { // TODO public inheritance isn't what we want right?
@@ -179,6 +222,7 @@ class Parser { // TODO "RecursiveDescentParser"
     public:
     explicit Parser(Lexer& lexer);
 
+    // TODO make this const sends the wrong signal, does it?
     Result<ParseTree::FunctionDefinition> parse() const;
 
     private:
@@ -189,6 +233,7 @@ class Parser { // TODO "RecursiveDescentParser"
     std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const;
 
     std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination) const;
+    std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const;
 
     std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination) const;
 };
