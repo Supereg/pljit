@@ -211,6 +211,8 @@ std::optional<SourceCodeError> Parser::parseInitDeclaratorList(ParseTree::InitDe
 
         destination.additionalInitDeclarators.emplace_back(result->reference(), declarator);
     }
+
+    return {};
 }
 
 std::optional<SourceCodeError> Parser::parseInitDeclarator(ParseTree::InitDeclarator& destination) const {
@@ -283,6 +285,7 @@ std::optional<SourceCodeError> Parser::parseStatementList(ParseTree::StatementLi
 }
 
 std::optional<SourceCodeError> Parser::parseStatement(ParseTree::Statement& destination) const {
+    (void) destination; // TODO remove!
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -394,6 +397,7 @@ std::optional<SourceCodeError> Parser::parseUnaryExpression(ParseTree::UnaryExpr
 }
 
 std::optional<SourceCodeError> Parser::parsePrimaryExpression(ParseTree::PrimaryExpression& destination) const {
+    (void) destination; // TODO remove!
     return std::optional<SourceCodeError>();
 }
 
@@ -413,6 +417,7 @@ std::optional<SourceCodeError> Parser::parseIdentifier(ParseTree::Identifier& de
     return {};
 }
 std::optional<SourceCodeError> Parser::parseLiteral(ParseTree::Literal& destination) const {
+    (void) destination; // TODO remove!
     return std::optional<SourceCodeError>();
 }
 std::optional<SourceCodeError> Parser::parseGenericTerminal(
