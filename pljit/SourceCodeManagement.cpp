@@ -24,13 +24,17 @@ std::string_view pljit::SourceCodeManagement::content() const {
     return source_code_view;
 }
 
-void pljit::SourceCodeManagement::print_error(pljit::SourceCodeManagement::ErrorType type, std::string_view message, const SourceCodeReference& reference) const {
+void pljit::SourceCodeManagement::print_error(
+    pljit::SourceCodeManagement::ErrorType type,
+    std::string_view message,
+    const SourceCodeReference& reference
+) const {
     unsigned column = 0;
     unsigned line = 1;
 
     {
         std::string_view::iterator iterator = reference.content().begin();
-        assert(iterator >= source_code_view.begin() && iterator < source_code_view.end() && "Illegal range!");
+        assert(iterator >= source_code_view.begin() && iterator <= source_code_view.end() && "Illegal range!");
 
         while(--iterator >= source_code_view.begin()) {
             if (*iterator == '\n') {

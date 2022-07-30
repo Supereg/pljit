@@ -8,7 +8,7 @@ using namespace pljit;
 
 #define ASSERT_TOKEN(result, type, exp_content) \
     ASSERT_TRUE((result).success()); \
-    ASSERT_EQ((result).value().getType(), (type)); \
+    EXPECT_EQ((result).value().getType(), (type)); \
     ASSERT_EQ((result).value().reference().content(), (exp_content))
 
 #define ASSERT_NEXT_TOKEN(lexer, result, type, exp_content) \
@@ -28,15 +28,15 @@ TEST(Lexer, testBasicTokens) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::PARAM);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "height");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "depth");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testIllegalToken) {
@@ -48,12 +48,12 @@ TEST(Lexer, testIllegalToken) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::PARAM);
 
     result = lexer.consume_next();
     ASSERT_TRUE(result.failure());
     result.error().printCompilerError();
-    EXPECT_EQ(capture.str(), "1:12: error: unexpected character\n"
+    EXPECT_EQ(capture.str(), "1:12: error: unexpected character!\n"
                              "PARAM width? height\n"
                              "           ^\n");
 }
@@ -66,9 +66,9 @@ TEST(Lexer, testVar) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "VAR");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::VAR);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 }
 
 TEST(Lexer, testConst) {
@@ -79,13 +79,13 @@ TEST(Lexer, testConst) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "CONST");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::CONST);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "=");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::INIT);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "2400");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testArithmeticExpression) {
@@ -96,29 +96,29 @@ TEST(Lexer, testArithmeticExpression) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "23");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "2");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, ")");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE);
 
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::PLUS);
 
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "3");
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "/");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::DIVISION);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "4");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "-");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MINUS);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "2");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, ")");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, ")");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testIdentifierLiteralsConcatenated) {
@@ -141,7 +141,7 @@ TEST(Lexer, testIdentifierLiteralsConcatenated) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "1");
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testConcatenatedOperators) {
@@ -152,19 +152,19 @@ TEST(Lexer, testConcatenatedOperators) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "/");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "-");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "+");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, ":=");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "/");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "/");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::PLUS);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::PLUS);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::DIVISION);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MINUS);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::PLUS);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::ASSIGNMENT);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::DIVISION);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::DIVISION);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testConcatenatedParenthesis) {
@@ -175,18 +175,18 @@ TEST(Lexer, testConcatenatedParenthesis) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, ")");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, ")");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, "(");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testConcatenatedSeparators) {
@@ -197,14 +197,14 @@ TEST(Lexer, testConcatenatedSeparators) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testAssignment) {
@@ -216,15 +216,15 @@ TEST(Lexer, testAssignment) {
     Result<Token> result;
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, ":=");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::ASSIGNMENT);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "height");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "depth");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testReturn) {
@@ -235,13 +235,13 @@ TEST(Lexer, testReturn) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "RETURN");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::RETURN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testWholeProgram) {
@@ -258,48 +258,47 @@ TEST(Lexer, testWholeProgram) {
 
     Result<Token> result;
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::PARAM);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "height");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ",");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::COMMA);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "depth");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "VAR");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::VAR);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "CONST");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::CONST);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "=");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::INIT);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "2400");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "BEGIN");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::BEGIN);
 
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, ":=");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::ASSIGNMENT);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "width");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "height");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "depth");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, ";");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::SEMICOLON);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "RETURN");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::RETURN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "density");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, "*");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::OPERATOR, Operator::MULTIPLICATION);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "volume");
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "END");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::END);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::END_OF_PROGRAM);
 
-    ASSERT_PROGRAM_END(lexer, result);
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testCharacterAfterProgramTerminator) {
-    CaptureCOut capture; // TODO remove requirement for capture!
-
     std::string program = "BEGIN\n"
                           "\tRETURN 0\n"
                           "END.\n"
@@ -309,18 +308,36 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
 
     Result<Token> result;
 
-
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "BEGIN");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "RETURN");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::BEGIN);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::RETURN);
     ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::INTEGER_LITERAL, "0");
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "END");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::END);
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::END_OF_PROGRAM);
 
+    ASSERT_FALSE(lexer.endOfStream());
+
+    /*
+     * TODO test this in the Parser!
     result = lexer.consume_next();
     ASSERT_TRUE(result.failure());
     result.error().printCompilerError();
     EXPECT_EQ(capture.str(), "4:1: error: unexpected character after end of program terminator!\n"
                              "RETURN 1\n"
                              "^\n");
+     */
+}
+
+TEST(Lexer, testWhitespacesAfterTerminator) {
+    std::string program = "program.\n ";
+    SourceCodeManagement management{ std::move(program) };
+    Lexer lexer { management };
+
+    Result<Token> result;
+
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::IDENTIFIER, "program");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::SEPARATOR, Separator::END_OF_PROGRAM);
+
+    ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Lexer, testPeekNext) {
@@ -332,15 +349,15 @@ TEST(Lexer, testPeekNext) {
     Result<Token> result;
 
     result = lexer.peek_next();
-    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, Keyword::PARAM);
 
     result = lexer.peek_next();
-    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, Keyword::PARAM);
 
     result = lexer.peek_next();
-    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_TOKEN(result, Token::TokenType::KEYWORD, Keyword::PARAM);
 
-    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, "PARAM");
+    ASSERT_NEXT_TOKEN(lexer, result, Token::TokenType::KEYWORD, Keyword::PARAM);
 
     result = lexer.peek_next();
     ASSERT_TOKEN(result, Token::TokenType::IDENTIFIER, "width");

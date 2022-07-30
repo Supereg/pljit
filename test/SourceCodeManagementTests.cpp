@@ -57,3 +57,57 @@ TEST(SourceCodeManagement, testSourceCodeError) {
                              "Hello world\n"
                              "^~~~~~~~~~~\n");
 }
+
+TEST(SourceCodeManagement, testEmptySourceCode) {
+    std::string program; // empty string
+    SourceCodeManagement management{ std::move(program) };
+
+    SourceCodeError error{
+        pljit::SourceCodeManagement::ErrorType::ERROR,
+        "It's an error!",
+        management.begin().codeReference()
+    };
+
+    CaptureCOut capture;
+
+    error.printCompilerError();
+    EXPECT_EQ(capture.str(), "1:1: error: It's an error!\n"
+                             "\n"
+                             "^\n");
+}
+
+TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
+    std::string program = "some program"; // empty string
+    SourceCodeManagement management{ std::move(program) };
+
+    SourceCodeError error{
+        pljit::SourceCodeManagement::ErrorType::ERROR,
+        "It's an error!",
+        management.end().codeReference()
+    };
+
+    CaptureCOut capture;
+
+    error.printCompilerError();
+    EXPECT_EQ(capture.str(), "1:13: error: It's an error!\n"
+                             "some program\n"
+                             "            ^\n");
+}
+
+TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
+    std::string program = "some program\n"; // empty string
+    SourceCodeManagement management{ std::move(program) };
+
+    SourceCodeError error{
+        pljit::SourceCodeManagement::ErrorType::ERROR,
+        "It's an error!",
+        (--management.end()).codeReference()
+    };
+
+    CaptureCOut capture;
+
+    error.printCompilerError();
+    EXPECT_EQ(capture.str(), "1:13: error: It's an error!\n"
+                             "some program\n"
+                             "            ^\n");
+}

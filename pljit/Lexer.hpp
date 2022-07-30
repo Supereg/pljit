@@ -39,6 +39,7 @@ struct Parenthesis {
 struct Separator {
     static constexpr std::string_view COMMA = ",";
     static constexpr std::string_view SEMICOLON = ";";
+    static constexpr std::string_view END_OF_PROGRAM = ".";
 };
 
 struct Whitespace {
@@ -58,7 +59,7 @@ class Token {
         KEYWORD,
         /// Some alphanumeric (lowercase or uppercase) identifier (which is not a keyword).
         IDENTIFIER,
-        /// A separator. One of `,` or `;`.
+        /// A separator. One of `,`, `;` or `.`.
         SEPARATOR,
         /// A operator consisting of a single character. One of `+`, `-`, `*`, `/`, `=` or `:=`.
         OPERATOR,
@@ -89,13 +90,13 @@ class Token {
 
     // TODO docs!
 
+    // TODO placement? (lang or src namespace?)
     static bool isWhitespace(char character);
     static bool isSeparator(char character);
     static bool isAlphanumeric(char character);
     static bool isIntegerLiteral(char character);
     static bool isParenthesis(char character);
     static bool isOperator(char character);
-    static bool isEndOfProgram(char character);
 
     static bool isKeyword(std::string_view view);
 
@@ -104,6 +105,10 @@ class Token {
     /// Creates an empty Token. `TokenType` is set to `EMPTY` and the source code is not accessible.
     Token();
 
+    /**
+     * Check if the {@see TokenType} of this `Token` is of type `TokenType::EMPTY`.
+     * @return Returns `true` if the `Token` is an empty token.
+     */
     bool isEmpty() const;
 
     TokenType getType() const;
@@ -158,6 +163,8 @@ class Lexer {
 
     public:
     explicit Lexer(const SourceCodeManagement& management);
+
+    bool endOfStream();
 
     /**
      * Peeks the next `Token`.

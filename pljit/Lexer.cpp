@@ -14,6 +14,14 @@
 //---------------------------------------------------------------------------
 pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()), returnedWithError(false) {}
 
+bool pljit::Lexer::endOfStream() {
+    while (current_position != management->end() && Token::isWhitespace(*current_position)) {
+        ++current_position;
+    }
+
+    return current_position == management->end();
+}
+
 pljit::Result<pljit::Token> pljit::Lexer::peek_next() {
     if (next_result.has_value()) {
         return *next_result;
@@ -51,9 +59,9 @@ void pljit::Lexer::consume(const pljit::Token& result) {
 }
 
 pljit::Result<pljit::Token> pljit::Lexer::next() {
-    Token token;
-
     assert(!returnedWithError && "Can't continue lexicographical analysis after encountering an error!");
+
+    Token token; // creates an `EMPTY` token.
 
     for(; current_position != management->end(); ++current_position) {
         if (Token::isWhitespace(*current_position)) {
@@ -65,7 +73,7 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
 
             token.finalize();
             return token;
-        } else if (Token::isEndOfProgram(*current_position)) {
+        } /* else if (Token::isEndOfProgram(*current_position)) {
             if (!token.isEmpty()) { // TODO return this as a Token; return EndOfStream as an error!
                 break;
             }
@@ -88,19 +96,18 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
             }
 
             break; // break the loop; jumps to the logic which handles "end of stream" below
-        }
+        }*/
 
         Token::ExtendResult extend_result = token.extend(current_position);
         switch (extend_result) {
             case Token::ExtendResult::EXTENDED:
                 continue;
             case Token::ExtendResult::ERRONEOUS_CHARACTER: {
-                SourceCodeError error{
+                return SourceCodeError{
                     SourceCodeManagement::ErrorType::ERROR,
-                    "unexpected character",
+                    "unexpected character!",
                     current_position.codeReference()
                 };
-                return error;
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -113,13 +120,19 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
         }
     }
 
-    // this is called once we reach the end of the source code.
+    // we reach here either if we break out of the loop or if we reach the end of the source code.
 
-    if (!token.isEmpty()) {
-        token.finalize();
+    if (token.isEmpty()) {
+        // TODO add member func to check for end of stream!
+        return SourceCodeError{
+            SourceCodeManagement::ErrorType::ERROR,
+            "unexpected end of stream!",
+            current_position.codeReference()
+        };
     }
 
-    return token; // returning an empty token signals end of stream!
+    token.finalize();
+    return token;
 }
 //---------------------------------------------------------------------------
 pljit::Token::Token() : type(TokenType::EMPTY), source_code() {}
@@ -129,7 +142,7 @@ bool pljit::Token::isWhitespace(char character) {
 }
 
 bool pljit::Token::isSeparator(char character) {
-    return character == ',' || character == ';';
+    return character == ',' || character == ';' || character == '.';
 }
 
 bool pljit::Token::isAlphanumeric(char character) {
@@ -146,10 +159,6 @@ bool pljit::Token::isParenthesis(char character) {
 
 bool pljit::Token::isOperator(char character) {
     return character == '+' || character == '-' || character == '*' || character == '/' || character == '=' || character == ':';
-}
-
-bool pljit::Token::isEndOfProgram(char character) {
-    return character == '.'; // TODO introduce constexpr for it!
 }
 
 bool pljit::Token::isKeyword(std::string_view view) {
@@ -233,7 +242,6 @@ pljit::Token::ExtendResult pljit::Token::extend(pljit::SourceCodeManagement::ite
         }
     }
 
-    // assert(&(*character) == source_code.content().end() && "Tried to extend Token with more than 1 character difference");
     source_code.extend(1);
     return ExtendResult::EXTENDED;
 }

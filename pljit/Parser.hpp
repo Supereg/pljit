@@ -29,7 +29,7 @@ class GenericTerminal : public Symbol {
     SourceCodeReference reference;
 
     public:
-    GenericTerminal();
+     GenericTerminal();
     GenericTerminal(SourceCodeReference reference);
 };
 

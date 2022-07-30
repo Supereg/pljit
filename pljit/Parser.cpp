@@ -7,6 +7,48 @@
 //---------------------------------------------------------------------------
 using namespace pljit;
 //---------------------------------------------------------------------------
+
+// TODO placement of those below!
+ParseTree::GenericTerminal::GenericTerminal() : reference() {}
+ParseTree::GenericTerminal::GenericTerminal(SourceCodeReference reference) : reference(reference) {}
+
+ParseTree::Identifier::Identifier() : reference() {}
+ParseTree::Identifier::Identifier(SourceCodeReference reference) : reference(reference) {}
+
+ParseTree::Literal::Literal() : reference(), literalValue(0) {}
+ParseTree::Literal::Literal(SourceCodeReference reference, long long int literalValue) : reference(reference), literalValue(literalValue) {}
+
+ParseTree::PrimaryExpression::PrimaryExpression() : type(Type::NONE), symbols(0) {}
+
+ParseTree::UnaryExpression::UnaryExpression() : unaryOperator(), primaryExpression() {}
+
+ParseTree::MultiplicativeExpression::MultiplicativeExpression() : expression(), optionalOperand(0) {}
+
+ParseTree::AdditiveExpression::AdditiveExpression() : expression(), optionalOperand() {}
+
+ParseTree::AssignmentExpression::AssignmentExpression() : identifier(), assignmentOperator(), additiveExpression() {}
+
+
+ParseTree::Statement::Statement() : type(Type::NONE), symbols(0) {}
+
+ParseTree::StatementList::StatementList() : statement(), additionalStatements(0) {}
+
+ParseTree::CompoundStatement::CompoundStatement() : beginKeyword(), statementList(), endKeyword() {}
+
+ParseTree::InitDeclarator::InitDeclarator() : identifier(), assignmentOperator(), literal() {}
+
+ParseTree::InitDeclaratorList::InitDeclaratorList() : initDeclarator(), additionalInitDeclarators(0) {}
+
+ParseTree::DeclaratorList::DeclaratorList() : identifier(), additionalIdentifiers(0) {}
+
+ParseTree::ConstantDeclarations::ConstantDeclarations() : constKeyword(), initDeclaratorList(), semicolon() {}
+
+ParseTree::VariableDeclarations::VariableDeclarations() : varKeyword(), declaratorList(), semicolon() {}
+
+ParseTree::ParameterDeclarations::ParameterDeclarations() : paramKeyword(), declaratorList(), semicolon() {}
+
+ParseTree::FunctionDefinition::FunctionDefinition() : parameterDeclarations(), variableDeclarations(), constantDeclarations(), compoundStatement() {}
+//---------------------------------------------------------------------------
 Parser::Parser(Lexer& lexer) : lexer(&lexer) {}
 
 Result<ParseTree::FunctionDefinition> Parser::parse() const { // TODO whats the cache line size? does it make sense to pass this thing directly?
@@ -441,44 +483,3 @@ std::optional<SourceCodeError> Parser::parseGenericTerminal(
     return {};
 }
 //---------------------------------------------------------------------------
-
-// TODO placement of those below!
-ParseTree::GenericTerminal::GenericTerminal() : reference() {}
-ParseTree::GenericTerminal::GenericTerminal(SourceCodeReference reference) : reference(reference) {}
-
-ParseTree::Identifier::Identifier() : reference() {}
-ParseTree::Identifier::Identifier(SourceCodeReference reference) : reference(reference) {}
-
-ParseTree::Literal::Literal() : reference(), literalValue(0) {}
-ParseTree::Literal::Literal(SourceCodeReference reference, long long int literalValue) : reference(reference), literalValue(literalValue) {}
-
-ParseTree::PrimaryExpression::PrimaryExpression() : type(Type::NONE), symbols(0) {}
-
-ParseTree::UnaryExpression::UnaryExpression() : unaryOperator(), primaryExpression() {}
-
-ParseTree::MultiplicativeExpression::MultiplicativeExpression() : expression(), optionalOperand(0) {}
-
-ParseTree::AdditiveExpression::AdditiveExpression() : expression(), optionalOperand() {}
-
-ParseTree::AssignmentExpression::AssignmentExpression() : identifier(), assignmentOperator(), additiveExpression() {}
-
-
-ParseTree::Statement::Statement() : type(Type::NONE), symbols(0) {}
-
-ParseTree::StatementList::StatementList() : statement(), additionalStatements(0) {}
-
-ParseTree::CompoundStatement::CompoundStatement() : beginKeyword(), statementList(), endKeyword() {}
-
-ParseTree::InitDeclarator::InitDeclarator() : identifier(), assignmentOperator(), literal() {}
-
-ParseTree::InitDeclaratorList::InitDeclaratorList() : initDeclarator(), additionalInitDeclarators(0) {}
-
-ParseTree::DeclaratorList::DeclaratorList() : identifier(), additionalIdentifiers(0) {}
-
-ParseTree::ConstantDeclarations::ConstantDeclarations() : constKeyword(), initDeclaratorList(), semicolon() {}
-
-ParseTree::VariableDeclarations::VariableDeclarations() : varKeyword(), declaratorList(), semicolon() {}
-
-ParseTree::ParameterDeclarations::ParameterDeclarations() : paramKeyword(), declaratorList(), semicolon() {}
-
-ParseTree::FunctionDefinition::FunctionDefinition() : parameterDeclarations(), variableDeclarations(), constantDeclarations(), compoundStatement() {}
