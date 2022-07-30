@@ -57,14 +57,14 @@ class Token {
         EMPTY,
         /// A keyword. One of `PARAM`, `VAR`, `CONST`, `BEGIN`, `END` or `RETURN`.
         KEYWORD,
-        /// Some alphanumeric (lowercase or uppercase) identifier (which is not a keyword).
+        /// Some alphanumeric (lowercase or uppercase) string (which is not a keyword).
         IDENTIFIER,
         /// A separator. One of `,`, `;` or `.`.
         SEPARATOR,
         /// A operator consisting of a single character. One of `+`, `-`, `*`, `/`, `=` or `:=`.
         OPERATOR,
         /// A integer literal. Any combination of digits.
-        INTEGER_LITERAL,
+        LITERAL,
         /// A single parenthesis. One of `(` or `)`.
         PARENTHESIS,
     };
@@ -125,7 +125,7 @@ class Token {
      * @param message The view to the error message.
      * @return The created {@class SourceCodeError} with the given type and message.
      */
-    SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+    [[nodiscard]] SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
 
     /**
      * Access to the Token's source code content.
@@ -159,16 +159,18 @@ class Lexer {
 
     /// Temporary variable to store Result instances that were peeked but not yet consumed!
     std::optional<Result<Token>> next_result;
-    bool returnedWithError; // TODO also store error!
+    bool returnedWithError;
 
     public:
     explicit Lexer(const SourceCodeManagement& management);
 
     bool endOfStream();
 
+    SourceCodeManagement::iterator cur_position() const;
+
     /**
      * Peeks the next `Token`.
-     * Peeking will parse the next `Token` without advancing the reader index.
+     * Peeking will parse_program the next `Token` without advancing the reader index.
      * Repeatedly calling `peek_next()` will always result in the same `Token`.
      * See {@link consume_next()}.
      * @return The next `Token` without consuming it.

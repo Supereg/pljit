@@ -6,6 +6,10 @@
 #include <cassert>
 
 // TODO AST: no symbols for separators. Still source code references for error printing(?)!
+//   "@all Just a note for the implementation of the AST in the final project: Someone told me that we explicitly mention in the final
+//   that the source code references are only required in the symbol table but not in any other AST nodes.
+//   With the source code references in the symbol table it is possible to print nice error messages for all
+//   errors that you should detect, so it's not necessary to put the source code references anywhere else in the AST."
 // TODO -fno-rtti (no run time type information)
 // TODO optimizations (e.g. with division by zero) -> ensure that the error is still there
 
@@ -15,11 +19,17 @@
 pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()), returnedWithError(false) {}
 
 bool pljit::Lexer::endOfStream() {
+    // might be the case that there are more than one whitespaces after the `.` terminator.
+    // We want to report endOfStream as true, even when there are only whitespaces remaining.
     while (current_position != management->end() && Token::isWhitespace(*current_position)) {
         ++current_position;
     }
 
     return current_position == management->end();
+}
+
+pljit::SourceCodeManagement::iterator pljit::Lexer::cur_position() const {
+    return current_position;
 }
 
 pljit::Result<pljit::Token> pljit::Lexer::peek_next() {
@@ -113,7 +123,7 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
 
                 // we received a character which doesn't match the current token type
-                // we want to parse that character in the next query again (so we don't increment)!
+                // we want to parse_program that character in the next query again (so we don't increment)!
 
                 token.finalize();
                 return token;
@@ -174,7 +184,7 @@ pljit::Token::TokenType pljit::Token::typeOfCharacter(char character) {
     } else if (isSeparator(character)) {
         return TokenType::SEPARATOR;
     } else if (isIntegerLiteral(character)) {
-        return TokenType::INTEGER_LITERAL;
+        return TokenType::LITERAL;
     } else if (isParenthesis(character)) {
         return TokenType::PARENTHESIS;
     } else {

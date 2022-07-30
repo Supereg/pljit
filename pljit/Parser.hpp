@@ -11,50 +11,75 @@
 #include <memory>
 #include <optional>
 #include <vector>
-#include <concepts> // TODO required?
+#include <gtest/gtest_prod.h>
 
 namespace pljit {
 class Parser;
-}
 
 // TODO how to organize namespaces??
-namespace pljit::ParseTree { // TODO add ability to print to graph!
+namespace ParseTree { // TODO add ability to print to graph (=PrintVisitor?)!
+//---------------------------------------------------------------------------
+class ParseTreeVisitor;
+class AdditiveExpression;
 //---------------------------------------------------------------------------
 class Symbol {
+    // TODO all nodes must maintain a SourceCodeReference (for future stages!)
     public:
     Symbol() = default;
+
+    virtual ~Symbol() = default;
+
+    virtual void accept(ParseTreeVisitor& visitor) const = 0;
 };
 
-class GenericTerminal : public Symbol {
+class GenericTerminal: public Symbol {
+    friend class pljit::Parser;
+
+    // TODO move this to symbol class (for all) and make a getter which checks if management is !? nullptr!
     SourceCodeReference reference;
 
     public:
-     GenericTerminal();
-    GenericTerminal(SourceCodeReference reference);
+    GenericTerminal();
+    explicit GenericTerminal(SourceCodeReference reference);
+
+    std::string_view value() const;
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class Identifier: public Symbol {
+    friend class pljit::Parser;
+
     SourceCodeReference reference;
     public:
     Identifier();
-    Identifier(SourceCodeReference reference);
+
+    std::string_view value() const;
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class Literal: public Symbol {
+    friend class pljit::Parser;
+
     SourceCodeReference reference;
     long long literalValue; // 64-bit integer
 
     public:
     Literal();
     Literal(SourceCodeReference reference, long long literalValue);
+
+    long long value() const;
+    std::string_view string_value() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class PrimaryExpression: public Symbol {
     friend class pljit::Parser;
 
+    public:
     /// Describes the content type of the `symbols` property.
     enum class Type {
-        NONE, // TODO NONE types?
+        NONE,
         /// PrimaryExpression contains a single instance of `Identifier`
         IDENTIFIER,
         /// PrimaryExpression contains a single instance of `Literal`
@@ -63,11 +88,20 @@ class PrimaryExpression: public Symbol {
         ADDITIVE_EXPRESSION,
     };
 
+    private:
     Type type;
     std::vector<std::unique_ptr<Symbol>> symbols;
 
     public:
     PrimaryExpression();
+
+    Type getType() const;
+
+    const Identifier& asIdentifier() const;
+    const Literal& asLiteral() const;
+    std::tuple<const GenericTerminal&, const AdditiveExpression&, const GenericTerminal&> asBracketedExpression() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class UnaryExpression: public Symbol {
@@ -78,6 +112,11 @@ class UnaryExpression: public Symbol {
 
     public:
     UnaryExpression();
+
+    const std::optional<GenericTerminal>& getUnaryOperator() const;
+    const PrimaryExpression& getPrimaryExpression() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 
@@ -89,6 +128,11 @@ class MultiplicativeExpression: public Symbol {
 
     public:
     MultiplicativeExpression();
+
+    const UnaryExpression& getExpression() const;
+    std::optional<std::tuple<const GenericTerminal&, const MultiplicativeExpression&>> getOperand() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class AdditiveExpression: public Symbol {
@@ -100,22 +144,34 @@ class AdditiveExpression: public Symbol {
 
     public:
     AdditiveExpression();
+
+    const MultiplicativeExpression& getExpression() const;
+    std::optional<std::tuple<const GenericTerminal&, const AdditiveExpression&>> getOperand() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class AssignmentExpression: public Symbol {
     friend class pljit::Parser;
 
     Identifier identifier;
-    GenericTerminal assignmentOperator; // `:=`
+    GenericTerminal assignmentOperator;
     AdditiveExpression additiveExpression;
 
     public:
     AssignmentExpression();
+
+    const Identifier& getIdentifier() const;
+    const GenericTerminal& getAssignmentOperator() const;
+    const AdditiveExpression& getAdditiveExpression() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class Statement: public Symbol {
     friend class pljit::Parser;
 
+    public:
     /// Describes the content type of the `symbols` property.
     enum class Type {
         NONE,
@@ -125,12 +181,29 @@ class Statement: public Symbol {
         RETURN,
     };
 
+    private:
     Type type;
-    // TODO what the hell!
     std::vector<std::unique_ptr<Symbol>> symbols;
 
     public:
     Statement();
+
+    /// Deleted copy constructor
+    Statement(const Statement& other) = delete;
+    /// Move constructor
+    Statement(Statement&& other) = default;
+
+    /// Deleted copy assignment
+    Statement& operator=(const Statement& other) = delete;
+    /// Move assignment
+    Statement& operator=(Statement&& other) = default;
+
+    Type getType() const;
+
+    const AssignmentExpression& asAssignmentExpression() const;
+    std::tuple<const GenericTerminal&, const AdditiveExpression&> asReturnExpression() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class StatementList: public Symbol {
@@ -141,6 +214,11 @@ class StatementList: public Symbol {
 
     public:
     StatementList();
+
+    const Statement& getStatement() const;
+    const std::vector<std::tuple<GenericTerminal, Statement>>& getAdditionalStatements() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class CompoundStatement: public Symbol {
@@ -152,17 +230,29 @@ class CompoundStatement: public Symbol {
 
     public:
     CompoundStatement();
+
+    const GenericTerminal& getBeginKeyword() const;
+    const StatementList& getStatementList() const;
+    const GenericTerminal& getEndKeyword() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class InitDeclarator: public Symbol {
     friend class pljit::Parser;
 
     Identifier identifier;
-    GenericTerminal assignmentOperator; // `=`
+    GenericTerminal initOperator;
     Literal literal;
 
     public:
     InitDeclarator();
+
+    const Identifier& getIdentifier() const;
+    const GenericTerminal& getInitOperator() const;
+    const Literal& getLiteral() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class InitDeclaratorList: public Symbol {
@@ -173,6 +263,11 @@ class InitDeclaratorList: public Symbol {
 
     public:
     InitDeclaratorList();
+
+    const InitDeclarator& getInitDeclarator() const;
+    const std::vector<std::tuple<GenericTerminal, InitDeclarator>>& getAdditionalInitDeclarators() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class DeclaratorList: public Symbol {
@@ -183,6 +278,11 @@ class DeclaratorList: public Symbol {
 
     public:
     DeclaratorList();
+
+    const Identifier& getIdentifier() const;
+    const std::vector<std::tuple<GenericTerminal, Identifier>>& getAdditionalIdentifiers() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class ConstantDeclarations: public Symbol {
@@ -194,6 +294,12 @@ class ConstantDeclarations: public Symbol {
 
     public:
     ConstantDeclarations();
+
+    const GenericTerminal& getConstKeyword() const;
+    const InitDeclaratorList& getInitDeclaratorList() const;
+    const GenericTerminal& getSemicolon() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class VariableDeclarations: public Symbol {
@@ -205,6 +311,12 @@ class VariableDeclarations: public Symbol {
 
     public:
     VariableDeclarations();
+
+    const GenericTerminal& getVarKeyword() const;
+    const DeclaratorList& getDeclaratorList() const;
+    const GenericTerminal& getSemicolon() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class ParameterDeclarations: public Symbol {
@@ -216,9 +328,15 @@ class ParameterDeclarations: public Symbol {
 
     public:
     ParameterDeclarations();
+
+    const GenericTerminal& getParamKeyword() const;
+    const DeclaratorList& getDeclaratorList() const;
+    const GenericTerminal& getSemicolon() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 
-class FunctionDefinition: public Symbol { // TODO public inheritance isn't what we want right?
+class FunctionDefinition: public Symbol {
     friend class pljit::Parser;
 
     std::optional<ParameterDeclarations> parameterDeclarations;
@@ -229,55 +347,54 @@ class FunctionDefinition: public Symbol { // TODO public inheritance isn't what 
 
     public:
     FunctionDefinition();
-    // TODO GenericTerminal terminator; // TODO endOfprogramm Terminator!?!?
+
+    const std::optional<ParameterDeclarations>& getParameterDeclarations() const;
+    const std::optional<VariableDeclarations>& getVariableDeclarations() const;
+    const std::optional<ConstantDeclarations>& getConstantDeclarations() const;
+    const CompoundStatement& getCompoundStatement() const;
+
+    void accept(ParseTreeVisitor& visitor) const override;
 };
 //---------------------------------------------------------------------------
-} // namespace pljit::ParseTree
-//---------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
-namespace pljit {
+} // namespace ParseTree
 //---------------------------------------------------------------------------
 class Parser { // TODO "RecursiveDescentParser"
-    // TODO one function for every non-terminal!
     Lexer* lexer;
 
     public:
-    explicit Parser(Lexer& lexer);
+    explicit Parser(Lexer& lexer); // TODO manage lexer creation itself?
 
-    // TODO make this const sends the wrong signal, does it?
-    Result<ParseTree::FunctionDefinition> parse() const;
+    Result<ParseTree::FunctionDefinition> parse_program();
 
-    private:
-    [[nodiscard]] std::optional<SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseStatementList(ParseTree::StatementList& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseStatement(ParseTree::Statement& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseStatementList(ParseTree::StatementList& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseStatement(ParseTree::Statement& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseIdentifier(ParseTree::Identifier& destination) const;
-    [[nodiscard]] std::optional<SourceCodeError> parseLiteral(ParseTree::Literal& destination) const;
+    [[nodiscard]] std::optional<SourceCodeError> parseIdentifier(ParseTree::Identifier& destination);
+    [[nodiscard]] std::optional<SourceCodeError> parseLiteral(ParseTree::Literal& destination);
     [[nodiscard]] std::optional<SourceCodeError> parseGenericTerminal(
         ParseTree::GenericTerminal& destination,
         Token::TokenType expected_type,
         std::string_view expected_content,
         std::string_view potential_error_message
-    ) const;
+    );
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

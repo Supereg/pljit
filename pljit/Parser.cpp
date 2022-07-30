@@ -3,56 +3,339 @@
 //
 
 #include "Parser.hpp"
+#include "ParseTreeVisitor.hpp"
+#include <charconv>
+
+// TODO namespaces in the implementationf files!
 
 //---------------------------------------------------------------------------
-using namespace pljit;
+namespace pljit {
 //---------------------------------------------------------------------------
+namespace ParseTree {
+//---------------------------------------------------------------------------
+GenericTerminal::GenericTerminal() : reference() {}
+GenericTerminal::GenericTerminal(SourceCodeReference reference) : reference(reference) {}
 
-// TODO placement of those below!
-ParseTree::GenericTerminal::GenericTerminal() : reference() {}
-ParseTree::GenericTerminal::GenericTerminal(SourceCodeReference reference) : reference(reference) {}
+std::string_view GenericTerminal::value() const {
+    return reference.content();
+}
 
-ParseTree::Identifier::Identifier() : reference() {}
-ParseTree::Identifier::Identifier(SourceCodeReference reference) : reference(reference) {}
+void GenericTerminal::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+Identifier::Identifier() : reference() {}
 
-ParseTree::Literal::Literal() : reference(), literalValue(0) {}
-ParseTree::Literal::Literal(SourceCodeReference reference, long long int literalValue) : reference(reference), literalValue(literalValue) {}
+std::string_view Identifier::value() const {
+    return reference.content();
+}
 
-ParseTree::PrimaryExpression::PrimaryExpression() : type(Type::NONE), symbols(0) {}
+void Identifier::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+Literal::Literal() : reference(), literalValue(0) {}
+Literal::Literal(SourceCodeReference reference, long long int literalValue) : reference(reference), literalValue(literalValue) {}
 
-ParseTree::UnaryExpression::UnaryExpression() : unaryOperator(), primaryExpression() {}
+long long Literal::value() const {
+    return literalValue;
+}
 
-ParseTree::MultiplicativeExpression::MultiplicativeExpression() : expression(), optionalOperand(0) {}
+std::string_view Literal::string_value() const { // TODO is this used?
+    return reference.content();
+}
 
-ParseTree::AdditiveExpression::AdditiveExpression() : expression(), optionalOperand() {}
+void Literal::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+PrimaryExpression::PrimaryExpression() : type(Type::NONE), symbols(0) {}
 
-ParseTree::AssignmentExpression::AssignmentExpression() : identifier(), assignmentOperator(), additiveExpression() {}
+PrimaryExpression::Type PrimaryExpression::getType() const {
+    return type;
+}
 
+const Identifier& PrimaryExpression::asIdentifier() const {
+    assert(type == Type::IDENTIFIER && "PrimaryExpression isn't an identifier!");
+    assert(symbols.size() == 1);
+    return static_cast<const Identifier&>(*symbols.at(0)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+}
 
-ParseTree::Statement::Statement() : type(Type::NONE), symbols(0) {}
+const Literal& PrimaryExpression::asLiteral() const {
+    assert(type == Type::LITERAL && "PrimaryExpression isn't a literal!");
+    assert(symbols.size() == 1);
+    return static_cast<const Literal&>(*symbols.at(0)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+}
+std::tuple<const GenericTerminal&, const AdditiveExpression&, const GenericTerminal&> PrimaryExpression::asBracketedExpression() const {
+    assert(type == Type::ADDITIVE_EXPRESSION && "PrimaryExpression isn't a bracketed additive expression!");
+    assert(symbols.size() == 3);
+    return std::tie(
+        static_cast<const GenericTerminal&>(*symbols.at(0)), // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<const AdditiveExpression&>(*symbols.at(1)), // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<const GenericTerminal&>(*symbols.at(2)) // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+    );
+}
 
-ParseTree::StatementList::StatementList() : statement(), additionalStatements(0) {}
+void PrimaryExpression::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+UnaryExpression::UnaryExpression() : unaryOperator(), primaryExpression() {}
 
-ParseTree::CompoundStatement::CompoundStatement() : beginKeyword(), statementList(), endKeyword() {}
+const std::optional<GenericTerminal>& UnaryExpression::getUnaryOperator() const {
+    return unaryOperator;
+}
 
-ParseTree::InitDeclarator::InitDeclarator() : identifier(), assignmentOperator(), literal() {}
+const PrimaryExpression& UnaryExpression::getPrimaryExpression() const {
+    return primaryExpression;
+}
 
-ParseTree::InitDeclaratorList::InitDeclaratorList() : initDeclarator(), additionalInitDeclarators(0) {}
+void UnaryExpression::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+MultiplicativeExpression::MultiplicativeExpression() : expression(), optionalOperand(0) {}
 
-ParseTree::DeclaratorList::DeclaratorList() : identifier(), additionalIdentifiers(0) {}
+const UnaryExpression& MultiplicativeExpression::getExpression() const {
+    return expression;
+}
 
-ParseTree::ConstantDeclarations::ConstantDeclarations() : constKeyword(), initDeclaratorList(), semicolon() {}
+std::optional<std::tuple<const GenericTerminal&, const MultiplicativeExpression&>> MultiplicativeExpression::getOperand() const {
+    if (optionalOperand.empty()) {
+        return {};
+    }
 
-ParseTree::VariableDeclarations::VariableDeclarations() : varKeyword(), declaratorList(), semicolon() {}
+    return { optionalOperand.at(0) };
+}
 
-ParseTree::ParameterDeclarations::ParameterDeclarations() : paramKeyword(), declaratorList(), semicolon() {}
+void MultiplicativeExpression::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+AdditiveExpression::AdditiveExpression() : expression(), optionalOperand() {}
 
-ParseTree::FunctionDefinition::FunctionDefinition() : parameterDeclarations(), variableDeclarations(), constantDeclarations(), compoundStatement() {}
+const MultiplicativeExpression& AdditiveExpression::getExpression() const {
+    return expression;
+}
+
+std::optional<std::tuple<const GenericTerminal&, const AdditiveExpression&>> AdditiveExpression::getOperand() const {
+    if (optionalOperand.empty()) {
+        return {};
+    }
+
+    // TODO why does this work?
+    return { optionalOperand.at(0) };
+}
+
+void AdditiveExpression::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+AssignmentExpression::AssignmentExpression() : identifier(), assignmentOperator(), additiveExpression() {}
+
+const Identifier& AssignmentExpression::getIdentifier() const {
+    return identifier;
+}
+
+const GenericTerminal& AssignmentExpression::getAssignmentOperator() const {
+    return assignmentOperator;
+}
+
+const AdditiveExpression& AssignmentExpression::getAdditiveExpression() const {
+    return additiveExpression;
+}
+
+void AssignmentExpression::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+Statement::Statement() : type(Type::NONE), symbols(0) {}
+
+Statement::Type Statement::getType() const {
+    return type;
+}
+
+const AssignmentExpression& Statement::asAssignmentExpression() const {
+    assert(type == Type::ASSIGNMENT && "Statement isn't an assignment!");
+    assert(symbols.size() == 1);
+    return static_cast<const AssignmentExpression&>(*symbols.at(0)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+}
+
+std::tuple<const GenericTerminal&, const AdditiveExpression&> Statement::asReturnExpression() const {
+    assert(type == Type::RETURN && "Statement isn't a return statement!");
+    assert(symbols.size() == 2);
+    return std::tie(
+        static_cast<const GenericTerminal&>(*symbols.at(0)), // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<const AdditiveExpression&>(*symbols.at(1)) // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+    );
+}
+
+void Statement::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+StatementList::StatementList() : statement(), additionalStatements(0) {}
+
+const Statement& StatementList::getStatement() const {
+    return statement;
+}
+
+const std::vector<std::tuple<GenericTerminal, Statement>>& StatementList::getAdditionalStatements() const {
+    return additionalStatements;
+}
+
+void StatementList::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+CompoundStatement::CompoundStatement() : beginKeyword(), statementList(), endKeyword() {}
+
+const GenericTerminal& CompoundStatement::getBeginKeyword() const {
+    return beginKeyword;
+}
+
+const StatementList& CompoundStatement::getStatementList() const {
+    return statementList;
+}
+
+const GenericTerminal& CompoundStatement::getEndKeyword() const {
+    return endKeyword;
+}
+
+void CompoundStatement::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+InitDeclarator::InitDeclarator() : identifier(), initOperator(), literal() {}
+
+const Identifier& InitDeclarator::getIdentifier() const {
+    return identifier;
+}
+
+const GenericTerminal& InitDeclarator::getInitOperator() const {
+    return initOperator;
+}
+
+const Literal& InitDeclarator::getLiteral() const {
+    return literal;
+}
+
+void InitDeclarator::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+InitDeclaratorList::InitDeclaratorList() : initDeclarator(), additionalInitDeclarators(0) {}
+
+const InitDeclarator& InitDeclaratorList::getInitDeclarator() const {
+    return initDeclarator;
+
+}
+const std::vector<std::tuple<GenericTerminal, InitDeclarator>>& InitDeclaratorList::getAdditionalInitDeclarators() const {
+    return additionalInitDeclarators;
+}
+
+void InitDeclaratorList::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+DeclaratorList::DeclaratorList() : identifier(), additionalIdentifiers(0) {}
+
+const Identifier& DeclaratorList::getIdentifier() const {
+    return identifier;
+}
+
+const std::vector<std::tuple<GenericTerminal, Identifier>>& DeclaratorList::getAdditionalIdentifiers() const {
+    return additionalIdentifiers;
+}
+
+void DeclaratorList::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+ConstantDeclarations::ConstantDeclarations() : constKeyword(), initDeclaratorList(), semicolon() {}
+
+const GenericTerminal& ConstantDeclarations::getConstKeyword() const {
+    return constKeyword;
+}
+
+const InitDeclaratorList& ConstantDeclarations::getInitDeclaratorList() const {
+    return initDeclaratorList;
+}
+
+const GenericTerminal& ConstantDeclarations::getSemicolon() const {
+    return semicolon;
+}
+
+void ConstantDeclarations::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+VariableDeclarations::VariableDeclarations() : varKeyword(), declaratorList(), semicolon() {}
+
+const GenericTerminal& VariableDeclarations::getVarKeyword() const {
+    return varKeyword;
+}
+
+const DeclaratorList& VariableDeclarations::getDeclaratorList() const {
+    return declaratorList;
+}
+
+const GenericTerminal& VariableDeclarations::getSemicolon() const {
+    return semicolon;
+}
+
+void VariableDeclarations::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+ParameterDeclarations::ParameterDeclarations() : paramKeyword(), declaratorList(), semicolon() {}
+
+const GenericTerminal& ParameterDeclarations::getParamKeyword() const {
+    return paramKeyword;
+}
+
+const DeclaratorList& ParameterDeclarations::getDeclaratorList() const {
+    return declaratorList;
+}
+
+const GenericTerminal& ParameterDeclarations::getSemicolon() const {
+    return semicolon;
+}
+
+void ParameterDeclarations::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+FunctionDefinition::FunctionDefinition() : parameterDeclarations(), variableDeclarations(), constantDeclarations(), compoundStatement() {}
+
+const std::optional<ParameterDeclarations>& FunctionDefinition::getParameterDeclarations() const {
+    return parameterDeclarations;
+}
+
+const std::optional<VariableDeclarations>& FunctionDefinition::getVariableDeclarations() const {
+    return variableDeclarations;
+}
+
+const std::optional<ConstantDeclarations>& FunctionDefinition::getConstantDeclarations() const {
+    return constantDeclarations;
+}
+
+const CompoundStatement& FunctionDefinition::getCompoundStatement() const {
+    return compoundStatement;
+}
+
+void FunctionDefinition::accept(ParseTreeVisitor& visitor) const {
+    visitor.visit(*this);
+}
+//---------------------------------------------------------------------------
+} // namespace ParseTree
+//---------------------------------------------------------------------------
+using namespace ParseTree;
 //---------------------------------------------------------------------------
 Parser::Parser(Lexer& lexer) : lexer(&lexer) {}
 
-Result<ParseTree::FunctionDefinition> Parser::parse() const { // TODO whats the cache line size? does it make sense to pass this thing directly?
-    ParseTree::FunctionDefinition definition;
+Result<FunctionDefinition> Parser::parse_program() { // TODO whats the cache line size? does it make sense to pass this thing directly?
+    FunctionDefinition definition;
     auto maybeError = parseFunctionDefinition(definition);
     if (maybeError.has_value()) {
         return *maybeError;
@@ -61,14 +344,13 @@ Result<ParseTree::FunctionDefinition> Parser::parse() const { // TODO whats the 
     return definition;
 }
 
-std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::FunctionDefinition& destination) const {
+std::optional<SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinition& destination) {
     Result<Token> result;
 
-    result = lexer->peek_next(); // TODO make EMPTY token an error!
+    result = lexer->peek_next();
     if (result.failure()) {
         return result.error();
     }
-
 
     if (result->is(Token::TokenType::KEYWORD, Keyword::PARAM)) {
         if (auto error = parseParameterDeclarations(destination.parameterDeclarations);
@@ -107,9 +389,7 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
     }
 
     if (result->getType() != Token::TokenType::KEYWORD) {
-        return result->makeError(
-            SourceCodeManagement::ErrorType::ERROR,
-            "Expected one of the following keywords `PARAM`, `VAR`, `CONST` or `BEGIN`!");
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected `BEGIN` keyword!");
     }
 
     if (auto error = parseCompoundStatement(destination.compoundStatement);
@@ -117,16 +397,29 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(ParseTree::Functi
         return error;
     }
 
-    // TODO assert end of program! (assert program terminator!)
+    result = lexer->consume_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (!result->is(Token::TokenType::SEPARATOR, Separator::END_OF_PROGRAM)) {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected `.` terminator!");
+    }
+
+    if (!lexer->endOfStream()) {
+        return SourceCodeError{
+            SourceCodeManagement::ErrorType::ERROR,
+            "unexpected character after end of program terminator!",
+            lexer->cur_position().codeReference()};
+    }
+
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination) const {
-    ParseTree::ParameterDeclarations declarations;
+std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParameterDeclarations>& destination) {
+    ParameterDeclarations declarations;
 
-    // TODO we would also need to check for an EMPTY Token?
-
-    if (auto error = parseGenericTerminal(destination->paramKeyword, Token::TokenType::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
+    if (auto error = parseGenericTerminal(declarations.paramKeyword, Token::TokenType::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
         error.has_value()) {
         return error;
     }
@@ -136,7 +429,7 @@ std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<
         return error;
     }
 
-    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (auto error = parseGenericTerminal(declarations.semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
         error.has_value()) {
         return error;
     }
@@ -145,11 +438,10 @@ std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination) const {
-    // TODO this is pretty much a code duplication!
-    ParseTree::VariableDeclarations declarations;
+std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<VariableDeclarations>& destination) {
+    VariableDeclarations declarations;
 
-    if (auto error = parseGenericTerminal(destination->varKeyword, Token::TokenType::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
+    if (auto error = parseGenericTerminal(declarations.varKeyword, Token::TokenType::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
         error.has_value()) {
         return error;
     }
@@ -159,7 +451,7 @@ std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<P
         return error;
     }
 
-    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (auto error = parseGenericTerminal(declarations.semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
         error.has_value()) {
         return error;
     }
@@ -168,11 +460,10 @@ std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<P
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination) const {
-    // TODO code duplication;
-    ParseTree::ConstantDeclarations declarations;
+std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<ConstantDeclarations>& destination) {
+    ConstantDeclarations declarations;
 
-    if (auto error = parseGenericTerminal(destination->constKeyword, Token::TokenType::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
+    if (auto error = parseGenericTerminal(declarations.constKeyword, Token::TokenType::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
         error.has_value()) {
         return error;
     }
@@ -182,7 +473,7 @@ std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<P
         return error;
     }
 
-    if (auto error = parseGenericTerminal(destination->semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (auto error = parseGenericTerminal(declarations.semicolon, Token::TokenType::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
         error.has_value()) {
         return error;
     }
@@ -191,7 +482,7 @@ std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<P
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseDeclaratorList(ParseTree::DeclaratorList& destination) const {
+std::optional<SourceCodeError> Parser::parseDeclaratorList(DeclaratorList& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
@@ -212,7 +503,7 @@ std::optional<SourceCodeError> Parser::parseDeclaratorList(ParseTree::Declarator
         // mark token as consumed!
         lexer->consume(*result);
 
-        ParseTree::Identifier identifier;
+        Identifier identifier;
         if (auto error = parseIdentifier(identifier);
             error.has_value()) {
             return error;
@@ -225,7 +516,7 @@ std::optional<SourceCodeError> Parser::parseDeclaratorList(ParseTree::Declarator
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination) const {
+std::optional<SourceCodeError> Parser::parseInitDeclaratorList(InitDeclaratorList& destination) {
     if (auto error = parseInitDeclarator(destination.initDeclarator);
         error.has_value()) {
         return error;
@@ -245,7 +536,7 @@ std::optional<SourceCodeError> Parser::parseInitDeclaratorList(ParseTree::InitDe
         // mark token as consumed!
         lexer->consume(*result);
 
-        ParseTree::InitDeclarator declarator;
+        InitDeclarator declarator;
         if (auto error = parseInitDeclarator(declarator);
             error.has_value()) {
             return error;
@@ -257,13 +548,13 @@ std::optional<SourceCodeError> Parser::parseInitDeclaratorList(ParseTree::InitDe
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseInitDeclarator(ParseTree::InitDeclarator& destination) const {
+std::optional<SourceCodeError> Parser::parseInitDeclarator(InitDeclarator& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
     }
 
-    if (auto error = parseGenericTerminal(destination.assignmentOperator, Token::TokenType::OPERATOR, Operator::INIT, "Expected `=` operator!");
+    if (auto error = parseGenericTerminal(destination.initOperator, Token::TokenType::OPERATOR, Operator::INIT, "Expected `=` operator!");
         error.has_value()) {
         return error;
     }
@@ -276,7 +567,7 @@ std::optional<SourceCodeError> Parser::parseInitDeclarator(ParseTree::InitDeclar
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseCompoundStatement(ParseTree::CompoundStatement& destination) const {
+std::optional<SourceCodeError> Parser::parseCompoundStatement(CompoundStatement& destination) {
     if (auto error = parseGenericTerminal(destination.beginKeyword, Token::TokenType::KEYWORD, Keyword::BEGIN, "Expected `BEGIN` keyword!");
         error.has_value()) {
         return error;
@@ -295,7 +586,7 @@ std::optional<SourceCodeError> Parser::parseCompoundStatement(ParseTree::Compoun
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseStatementList(ParseTree::StatementList& destination) const {
+std::optional<SourceCodeError> Parser::parseStatementList(StatementList& destination) {
     if (auto error = parseStatement(destination.statement);
         error.has_value()) {
         return error;
@@ -314,7 +605,7 @@ std::optional<SourceCodeError> Parser::parseStatementList(ParseTree::StatementLi
 
         lexer->consume(*result);
 
-        ParseTree::Statement statement;
+        Statement statement;
         if (auto error = parseStatement(statement);
             error.has_value()) {
             return error;
@@ -326,8 +617,7 @@ std::optional<SourceCodeError> Parser::parseStatementList(ParseTree::StatementLi
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseStatement(ParseTree::Statement& destination) const {
-    (void) destination; // TODO remove!
+std::optional<SourceCodeError> Parser::parseStatement(Statement& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -336,14 +626,36 @@ std::optional<SourceCodeError> Parser::parseStatement(ParseTree::Statement& dest
     }
 
     if (result->is(Token::TokenType::KEYWORD, Keyword::RETURN)) {
+        lexer->consume(*result);
 
+        AdditiveExpression expression;
+
+        if (auto error = parseAdditiveExpression(expression);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.type = Statement::Type::RETURN;
+        destination.symbols.push_back(std::make_unique<GenericTerminal>(result->reference()));
+        destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
+    } else if (result->getType() == Token::TokenType::IDENTIFIER) {
+        AssignmentExpression expression;
+
+        if (auto error = parseAssignmentExpression(expression);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.type = Statement::Type::ASSIGNMENT;
+        destination.symbols.push_back(std::make_unique<AssignmentExpression>(std::move(expression)));
+    } else {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
     }
-    // TODO parse statment! with vector and ptr!
 
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseAssignmentExpression(ParseTree::AssignmentExpression& destination) const {
+std::optional<SourceCodeError> Parser::parseAssignmentExpression(AssignmentExpression& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
@@ -362,7 +674,7 @@ std::optional<SourceCodeError> Parser::parseAssignmentExpression(ParseTree::Assi
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseAdditiveExpression(ParseTree::AdditiveExpression& destination) const {
+std::optional<SourceCodeError> Parser::parseAdditiveExpression(AdditiveExpression& destination) {
     if (auto error = parseMultiplicativeExpression(destination.expression);
         error.has_value()) {
         return error;
@@ -378,7 +690,7 @@ std::optional<SourceCodeError> Parser::parseAdditiveExpression(ParseTree::Additi
     if (result->is(Token::TokenType::OPERATOR, Operator::PLUS) || result->is(Token::TokenType::OPERATOR, Operator::MINUS)) {
         lexer->consume(*result);
 
-        ParseTree::AdditiveExpression additiveExpression;
+        AdditiveExpression additiveExpression;
 
         if (auto error = parseAdditiveExpression(additiveExpression);
             error.has_value()) {
@@ -390,7 +702,7 @@ std::optional<SourceCodeError> Parser::parseAdditiveExpression(ParseTree::Additi
 
     return {};
 }
-std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination) const {
+std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(MultiplicativeExpression& destination) {
     if (auto error = parseUnaryExpression(destination.expression);
         error.has_value()) {
         return error;
@@ -406,7 +718,7 @@ std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(ParseTree::
     if (result->is(Token::TokenType::OPERATOR, Operator::MULTIPLICATION) || result->is(Token::TokenType::OPERATOR, Operator::DIVISION)) {
         lexer->consume(*result);
 
-        ParseTree::MultiplicativeExpression multiplicativeExpression;
+        MultiplicativeExpression multiplicativeExpression;
 
         if (auto error = parseMultiplicativeExpression(multiplicativeExpression);
             error.has_value()) {
@@ -418,7 +730,7 @@ std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(ParseTree::
 
     return {};
 }
-std::optional<SourceCodeError> Parser::parseUnaryExpression(ParseTree::UnaryExpression& destination) const {
+std::optional<SourceCodeError> Parser::parseUnaryExpression(UnaryExpression& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -427,7 +739,8 @@ std::optional<SourceCodeError> Parser::parseUnaryExpression(ParseTree::UnaryExpr
     }
 
     if (result->is(Token::TokenType::OPERATOR, Operator::PLUS) || result->is(Token::TokenType::OPERATOR, Operator::MINUS)) {
-        destination.unaryOperator = result->reference();
+        lexer->consume(*result);
+        destination.unaryOperator = GenericTerminal{result->reference()};
     }
 
     if (auto error = parsePrimaryExpression(destination.primaryExpression);
@@ -438,12 +751,67 @@ std::optional<SourceCodeError> Parser::parseUnaryExpression(ParseTree::UnaryExpr
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parsePrimaryExpression(ParseTree::PrimaryExpression& destination) const {
-    (void) destination; // TODO remove!
-    return std::optional<SourceCodeError>();
+std::optional<SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression& destination) {
+    Result<Token> result;
+
+    result = lexer->peek_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->getType() == Token::TokenType::IDENTIFIER) {
+        Identifier identifier;
+
+        if (auto error = parseIdentifier(identifier);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.type = PrimaryExpression::Type::IDENTIFIER;
+        destination.symbols.push_back(std::make_unique<Identifier>(identifier));
+    } else if (result->getType() == Token::TokenType::LITERAL) {
+        Literal literal;
+
+        if (auto error = parseLiteral(literal);
+            error.has_value()) {
+            return error;
+        }
+
+        destination.type = PrimaryExpression::Type::LITERAL;
+        destination.symbols.push_back(std::make_unique<Literal>(literal));
+    } else if (result->is(Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN)) {
+        GenericTerminal open;
+        AdditiveExpression expression;
+        GenericTerminal close;
+
+        if (auto error = parseGenericTerminal(open, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_OPEN, "Expected `(` parenthesis!");
+            error.has_value()) {
+            return error;
+        }
+
+        if (auto error = parseAdditiveExpression(expression);
+            error.has_value()) {
+            return error;
+        }
+
+        if (auto error = parseGenericTerminal(close, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
+            error.has_value()) {
+            // TODO the specification has a `note:` for this error pointing to the open bracket!
+            return error;
+        }
+
+        destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
+        destination.symbols.push_back(std::make_unique<GenericTerminal>(open));
+        destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
+        destination.symbols.push_back(std::make_unique<GenericTerminal>(close));
+    } else {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
+    }
+
+    return {};
 }
 
-std::optional<SourceCodeError> Parser::parseIdentifier(ParseTree::Identifier& destination) const {
+std::optional<SourceCodeError> Parser::parseIdentifier(Identifier& destination) {
     Result<Token> result;
 
     result = lexer->consume_next();
@@ -452,22 +820,52 @@ std::optional<SourceCodeError> Parser::parseIdentifier(ParseTree::Identifier& de
     }
 
     if (result->getType() != Token::TokenType::IDENTIFIER) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected identifier!");
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected string!");
     }
 
-    destination = result->reference();
+    destination.reference = result->reference();
     return {};
 }
-std::optional<SourceCodeError> Parser::parseLiteral(ParseTree::Literal& destination) const {
-    (void) destination; // TODO remove!
-    return std::optional<SourceCodeError>();
+
+std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
+    Result<Token> result;
+
+    result = lexer->consume_next();
+    if (result.failure()) {
+        return result.error();
+    }
+
+    if (result->getType() != Token::TokenType::LITERAL) {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected literal!");
+    }
+
+    std::string_view literal = result->reference().content();
+    long long value;
+
+    auto conversion = std::from_chars(literal.data(), literal.data() + literal.size(), value);
+
+    if (conversion.ec != std::errc{}) {
+        if (conversion.ec == std::errc::result_out_of_range) {
+            return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Integer literal is out of range. Expected singed 64-bit!");
+        }
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered unexpected error parsing integer literal!");
+    }
+
+    if (conversion.ptr != literal.data() + literal.size()) {
+        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
+    }
+
+    destination.reference = result->reference();
+    destination.literalValue = value;
+
+    return {};
 }
+
 std::optional<SourceCodeError> Parser::parseGenericTerminal(
-    ParseTree::GenericTerminal& destination,
+    GenericTerminal& destination,
     Token::TokenType expected_type,
     std::string_view expected_content, // NOLINT(bugprone-easily-swappable-parameters)
-    std::string_view potential_error_message
-) const {
+    std::string_view potential_error_message) {
     Result<Token> result;
 
     result = lexer->consume_next();
@@ -479,7 +877,9 @@ std::optional<SourceCodeError> Parser::parseGenericTerminal(
         return result->makeError(SourceCodeManagement::ErrorType::ERROR, potential_error_message);
     }
 
-    destination = result->reference();
+    destination.reference = result->reference();
     return {};
 }
+//---------------------------------------------------------------------------
+} // namespace pljit
 //---------------------------------------------------------------------------
