@@ -113,11 +113,9 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
             case Token::ExtendResult::EXTENDED:
                 continue;
             case Token::ExtendResult::ERRONEOUS_CHARACTER: {
-                return SourceCodeError{
-                    SourceCodeManagement::ErrorType::ERROR,
-                    "unexpected character!",
-                    current_position.codeReference()
-                };
+                return current_position
+                    .codeReference()
+                    .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected character!");
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -134,11 +132,9 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
 
     if (token.isEmpty()) {
         // TODO add member func to check for end of stream!
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "unexpected end of stream!",
-            current_position.codeReference()
-        };
+        return current_position
+            .codeReference()
+            .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected end of stream!");
     }
 
     token.finalize();
@@ -206,7 +202,7 @@ pljit::SourceCodeReference pljit::Token::reference() const {
 }
 
 pljit::SourceCodeError pljit::Token::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
-    return { errorType, message, reference() };
+    return reference().makeError(errorType, message);
 }
 
 std::string_view pljit::Token::content() const {

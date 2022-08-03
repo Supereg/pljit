@@ -23,33 +23,31 @@ class ParseTreeVisitor;
 class AdditiveExpression;
 //---------------------------------------------------------------------------
 class Symbol {
-    // TODO all nodes must maintain a SourceCodeReference (for future stages!)
+    friend class pljit::Parser;
+
+    protected:
+    SourceCodeReference src_reference; // TODO getter checks for nullptr!!!
     public:
-    Symbol() = default;
+    Symbol();
+    Symbol(SourceCodeReference src_reference);
 
     virtual ~Symbol() = default;
+
+    const SourceCodeReference& reference() const;
 
     virtual void accept(ParseTreeVisitor& visitor) const = 0;
 };
 
 class GenericTerminal: public Symbol {
-    friend class pljit::Parser;
-
-    // TODO move this to symbol class (for all) and make a getter which checks if management is !? nullptr!
-    SourceCodeReference reference;
-
     public:
     GenericTerminal();
-    explicit GenericTerminal(SourceCodeReference reference);
+    explicit GenericTerminal(SourceCodeReference src_reference);
 
     std::string_view value() const;
     void accept(ParseTreeVisitor& visitor) const override;
 };
 
 class Identifier: public Symbol {
-    friend class pljit::Parser;
-
-    SourceCodeReference reference;
     public:
     Identifier();
 
@@ -59,13 +57,11 @@ class Identifier: public Symbol {
 
 class Literal: public Symbol {
     friend class pljit::Parser;
-
-    SourceCodeReference reference;
     long long literalValue; // 64-bit integer
 
     public:
     Literal();
-    Literal(SourceCodeReference reference, long long literalValue);
+    Literal(SourceCodeReference src_reference, long long literalValue);
 
     long long value() const;
     std::string_view string_value() const;

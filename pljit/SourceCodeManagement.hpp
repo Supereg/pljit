@@ -5,13 +5,14 @@
 #ifndef PLJIT_SOURCECODEMANAGEMENT_H
 #define PLJIT_SOURCECODEMANAGEMENT_H
 #include <string>
+#include <vector>
 
 //---------------------------------------------------------------------------
 namespace pljit {
 // TODO introduce "src" namespace!
 
 //---------------------------------------------------------------------------
-class SourceCodeReference;
+class SourceCodeReference; // TODO move those to individual headers?
 class SourceCodeError;
 //---------------------------------------------------------------------------
 class SourceCodeManagement {
@@ -92,6 +93,10 @@ class SourceCodeReference {
 
     void extend(int amount);
 
+    SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+
+    SourceCodeError& withCause(SourceCodeError&& cause);
+
     bool operator==(const SourceCodeReference& rhs) const;
 };
 //---------------------------------------------------------------------------
@@ -99,6 +104,8 @@ class SourceCodeError {
     SourceCodeManagement::ErrorType errorType;
     std::string_view errorMessage;
     SourceCodeReference sourceCodeReference;
+
+    std::vector<SourceCodeError> causes;
     public:
 
     SourceCodeError(SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference);
@@ -106,6 +113,8 @@ class SourceCodeError {
     SourceCodeManagement::ErrorType type() const;
     std::string_view message() const;
     const SourceCodeReference& reference() const;
+
+    SourceCodeError& withCause(SourceCodeError&& error_cause);
 
     void printCompilerError() const;
 

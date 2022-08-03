@@ -8,41 +8,51 @@
 
 // TODO namespaces in the implementationf files!
 
+// TODO check variable ordering (bigger to smaller!)
+
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
 namespace ParseTree {
 //---------------------------------------------------------------------------
-GenericTerminal::GenericTerminal() : reference() {}
-GenericTerminal::GenericTerminal(SourceCodeReference reference) : reference(reference) {}
+Symbol::Symbol() : src_reference() {}
+
+const SourceCodeReference& Symbol::reference() const {
+    return src_reference;
+}
+
+Symbol::Symbol(SourceCodeReference src_reference) : src_reference(src_reference) {}
+//---------------------------------------------------------------------------
+GenericTerminal::GenericTerminal() = default;
+GenericTerminal::GenericTerminal(SourceCodeReference src_reference) : Symbol(src_reference) {}
 
 std::string_view GenericTerminal::value() const {
-    return reference.content();
+    return src_reference.content();
 }
 
 void GenericTerminal::accept(ParseTreeVisitor& visitor) const {
     visitor.visit(*this);
 }
 //---------------------------------------------------------------------------
-Identifier::Identifier() : reference() {}
+Identifier::Identifier() = default;
 
 std::string_view Identifier::value() const {
-    return reference.content();
+    return src_reference.content();
 }
 
 void Identifier::accept(ParseTreeVisitor& visitor) const {
     visitor.visit(*this);
 }
 //---------------------------------------------------------------------------
-Literal::Literal() : reference(), literalValue(0) {}
-Literal::Literal(SourceCodeReference reference, long long int literalValue) : reference(reference), literalValue(literalValue) {}
+Literal::Literal() : literalValue(0) {}
+Literal::Literal(SourceCodeReference src_reference, long long int literalValue) : Symbol(src_reference), literalValue(literalValue) {}
 
 long long Literal::value() const {
     return literalValue;
 }
 
 std::string_view Literal::string_value() const { // TODO is this used?
-    return reference.content();
+    return src_reference.content();
 }
 
 void Literal::accept(ParseTreeVisitor& visitor) const {
@@ -58,13 +68,13 @@ PrimaryExpression::Type PrimaryExpression::getType() const {
 const Identifier& PrimaryExpression::asIdentifier() const {
     assert(type == Type::IDENTIFIER && "PrimaryExpression isn't an identifier!");
     assert(symbols.size() == 1);
-    return static_cast<const Identifier&>(*symbols.at(0)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+    return static_cast<const Identifier&>(*symbols[0]); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 }
 
 const Literal& PrimaryExpression::asLiteral() const {
     assert(type == Type::LITERAL && "PrimaryExpression isn't a literal!");
     assert(symbols.size() == 1);
-    return static_cast<const Literal&>(*symbols.at(0)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+    return static_cast<const Literal&>(*symbols[0]); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 }
 std::tuple<const GenericTerminal&, const AdditiveExpression&, const GenericTerminal&> PrimaryExpression::asBracketedExpression() const {
     assert(type == Type::ADDITIVE_EXPRESSION && "PrimaryExpression isn't a bracketed additive expression!");
@@ -334,6 +344,7 @@ using namespace ParseTree;
 //---------------------------------------------------------------------------
 Parser::Parser(Lexer& lexer) : lexer(&lexer) {}
 
+// TODO are unique_ptr everywhere a better thing to do?
 Result<FunctionDefinition> Parser::parse_program() { // TODO whats the cache line size? does it make sense to pass this thing directly?
     FunctionDefinition definition;
     auto maybeError = parseFunctionDefinition(definition);
@@ -407,10 +418,9 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinitio
     }
 
     if (!lexer->endOfStream()) {
-        return SourceCodeError{
-            SourceCodeManagement::ErrorType::ERROR,
-            "unexpected character after end of program terminator!",
-            lexer->cur_position().codeReference()};
+        return lexer->cur_position()
+            .codeReference()
+            .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected character after end of program terminator!");
     }
 
     return {};
@@ -796,8 +806,7 @@ std::optional<SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression&
 
         if (auto error = parseGenericTerminal(close, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
             error.has_value()) {
-            // TODO the specification has a `note:` for this error pointing to the open bracket!
-            return error;
+            return error->withCause(open.reference().makeError(SourceCodeManagement::ErrorType::NOTE, "opening bracket here"));
         }
 
         destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
@@ -823,7 +832,7 @@ std::optional<SourceCodeError> Parser::parseIdentifier(Identifier& destination) 
         return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected string!");
     }
 
-    destination.reference = result->reference();
+    destination.src_reference = result->reference();
     return {};
 }
 
@@ -855,7 +864,8 @@ std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
         return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
     }
 
-    destination.reference = result->reference();
+    // TODO might be bad style; writing into variables?
+    destination.src_reference = result->reference();
     destination.literalValue = value;
 
     return {};
@@ -877,7 +887,7 @@ std::optional<SourceCodeError> Parser::parseGenericTerminal(
         return result->makeError(SourceCodeManagement::ErrorType::ERROR, potential_error_message);
     }
 
-    destination.reference = result->reference();
+    destination.src_reference = result->reference();
     return {};
 }
 //---------------------------------------------------------------------------

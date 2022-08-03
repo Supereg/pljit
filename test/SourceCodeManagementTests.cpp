@@ -44,7 +44,7 @@ TEST(SourceCodeManagement, testSourceCodeError) {
     auto reference = management.begin().codeReference();
     reference.extend(10);
 
-    SourceCodeError error{ pljit::SourceCodeManagement::ErrorType::NOTE, "some error!", reference };
+    SourceCodeError error = reference.makeError(pljit::SourceCodeManagement::ErrorType::NOTE, "some error!");
 
     ASSERT_EQ(error.reference().content(), "Hello world");
     ASSERT_EQ(error.message(), "some error!");
@@ -77,7 +77,7 @@ TEST(SourceCodeManagement, testEmptySourceCode) {
 }
 
 TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
-    std::string program = "some program"; // empty string
+    std::string program = "some program\nnew"; // empty string
     SourceCodeManagement management{ std::move(program) };
 
     SourceCodeError error{
@@ -89,9 +89,9 @@ TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
     CaptureCOut capture;
 
     error.printCompilerError();
-    EXPECT_EQ(capture.str(), "1:13: error: It's an error!\n"
-                             "some program\n"
-                             "            ^\n");
+    EXPECT_EQ(capture.str(), "2:4: error: It's an error!\n"
+                             "new\n"
+                             "   ^\n");
 }
 
 TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {

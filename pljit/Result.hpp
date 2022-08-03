@@ -4,6 +4,7 @@
 
 #ifndef PLJIT_RESULT_HPP
 #define PLJIT_RESULT_HPP
+
 #include "SourceCodeManagement.hpp"
 #include <concepts>
 #include <optional>
@@ -22,6 +23,8 @@ class Result {
     Result(SourceCodeError error) requires std::default_initializable<T>;
 
     const T& value() const;
+
+    T&& release() requires std::movable<T>;
 
     SourceCodeError error() const;
 
@@ -42,12 +45,18 @@ template <typename T>
 Result<T>::Result(T result) requires std::move_constructible<T> : source_error(), result_content(std::move(result)) {}
 
 template <typename T>
-Result<T>::Result(SourceCodeError error) requires std::default_initializable<T> : source_error(error), result_content() {}
+Result<T>::Result(SourceCodeError error) requires std::default_initializable<T> : source_error(std::move(error)), result_content() {}
 
 template <typename T>
 const T& Result<T>::value() const {
     assert(!source_error.has_value() && "Result: result not present. SourceCode error occurred!");
     return result_content;
+}
+
+template <typename T>
+T&& Result<T>::release() requires std::movable<T> {
+    assert(!source_error.has_value() && "Result: result not present. SourceCode error occurred!");
+    return std::move(result_content);
 }
 
 template <typename T>

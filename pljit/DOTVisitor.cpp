@@ -104,11 +104,11 @@ void DOTVisitor::visit(const DeclaratorList& node) {
     printEdge(root);
     node.getIdentifier().accept(*this);
 
-    for (auto& tuple: node.getAdditionalIdentifiers()) {
+    for (auto& [genericTerminal, identifier]: node.getAdditionalIdentifiers()) {
         printEdge(root);
-        std::get<GenericTerminal>(tuple).accept(*this);
+        genericTerminal.accept(*this);
         printEdge(root);
-        std::get<Identifier>(tuple).accept(*this);
+        identifier.accept(*this);
     }
 }
 
@@ -120,11 +120,11 @@ void DOTVisitor::visit(const InitDeclaratorList& node) {
     printEdge(root);
     node.getInitDeclarator().accept(*this);
 
-    for (auto tuple: node.getAdditionalInitDeclarators()) {
+    for (auto& [genericTerminal, declarator]: node.getAdditionalInitDeclarators()) {
         printEdge(root);
-        std::get<GenericTerminal>(tuple).accept(*this);
+        genericTerminal.accept(*this);
         printEdge(root);
-        std::get<InitDeclarator>(tuple).accept(*this);
+        declarator.accept(*this);
     }
 }
 
@@ -162,11 +162,11 @@ void DOTVisitor::visit(const StatementList& node) {
     printEdge(root);
     node.getStatement().accept(*this);
 
-    for (auto& tuple: node.getAdditionalStatements()) {
+    for (auto& [genericTerminal, statement]: node.getAdditionalStatements()) {
         printEdge(root);
-        std::get<GenericTerminal>(tuple).accept(*this);
+        genericTerminal.accept(*this);
         printEdge(root);
-        std::get<Statement>(tuple).accept(*this);
+        statement.accept(*this);
     }
 }
 
