@@ -5,6 +5,7 @@
 #ifndef PLJIT_AST_HPP
 #define PLJIT_AST_HPP
 #include "SymbolTable.hpp"
+#include "ASTVisitor.hpp"
 #include <vector>
 #include <memory>
 #include <optional>
@@ -45,6 +46,7 @@ class Node {
     virtual ~Node() = default;
 
     virtual Type getType() const = 0;
+    virtual void accept(ASTVisitor& visitor) const = 0;
 };
 
 
@@ -56,16 +58,23 @@ class Literal: public Expression {
     explicit Literal(long long literal_value);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
+
+    long long int value() const;
 };
 
 class Variable: public Expression {
     symbol_id symbolId;
+    std::string_view name;
 
     public:
-    Variable();
-    explicit Variable(symbol_id symbolId);
+    explicit Variable(symbol_id symbolId, std::string_view name);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
+
+    symbol_id getSymbolId() const;
+    const std::string_view& getName() const;
 };
 
 class UnaryExpression: public Expression {
@@ -95,6 +104,7 @@ class UnaryPlus: public UnaryExpression {
     explicit UnaryPlus(std::unique_ptr<Expression> child);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class UnaryMinus: public UnaryExpression {
@@ -102,6 +112,7 @@ class UnaryMinus: public UnaryExpression {
     explicit UnaryMinus(std::unique_ptr<Expression> child);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Add: public BinaryExpression {
@@ -109,6 +120,7 @@ class Add: public BinaryExpression {
     Add(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Subtract: public BinaryExpression {
@@ -116,6 +128,7 @@ class Subtract: public BinaryExpression {
     Subtract(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Multiply: public BinaryExpression {
@@ -123,6 +136,7 @@ class Multiply: public BinaryExpression {
     Multiply(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Divide: public BinaryExpression {
@@ -130,6 +144,7 @@ class Divide: public BinaryExpression {
     Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Statement: public Node {
@@ -149,6 +164,9 @@ class AssignmentStatement: public Statement {
     AssignmentStatement(std::unique_ptr<Expression> expression, Variable variable);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
+
+    const Variable& getVariable() const;
 };
 
 class ReturnStatement: public Statement {
@@ -156,16 +174,18 @@ class ReturnStatement: public Statement {
     explicit ReturnStatement(std::unique_ptr<Expression> expression);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class Declaration: public Node {
+    protected:
     std::vector<Variable> declaredIdentifiers;
     public:
     Declaration();
     explicit Declaration(std::vector<Variable> declaredIdentifiers);
+
+    const std::vector<Variable>& getDeclaredIdentifiers() const;
 };
-
-
 
 class ParamDeclaration: public Declaration {
     public:
@@ -173,6 +193,7 @@ class ParamDeclaration: public Declaration {
     explicit ParamDeclaration(std::vector<Variable> declaredIdentifiers);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class VarDeclaration: public Declaration {
@@ -181,6 +202,7 @@ class VarDeclaration: public Declaration {
     explicit VarDeclaration(std::vector<Variable> declaredIdentifiers);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
 };
 
 class ConstDeclaration: public Declaration {
@@ -190,15 +212,18 @@ class ConstDeclaration: public Declaration {
     ConstDeclaration(std::vector<Variable> declaredIdentifiers, std::vector<Literal> literalValues);
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
+
+    std::vector<std::tuple<const Variable&, const Literal&>> getConstDeclarations() const;
 };
 
 class Function: public Node {
     // TODO really friends?
     friend class ASTBuilder;
 
-    ParamDeclaration paramDeclaration;
-    VarDeclaration varDeclaration;
-    ConstDeclaration constDeclaration;
+    std::optional<ParamDeclaration> paramDeclaration;
+    std::optional<VarDeclaration> varDeclaration;
+    std::optional<ConstDeclaration> constDeclaration;
 
     std::vector<std::unique_ptr<Statement>> statements;
 
@@ -206,6 +231,12 @@ class Function: public Node {
     Function();
 
     Type getType() const override;
+    void accept(ASTVisitor& visitor) const override;
+
+    const std::optional<ParamDeclaration>& getParamDeclaration() const;
+    const std::optional<VarDeclaration>& getVarDeclaration() const;
+    const std::optional<ConstDeclaration>& getConstDeclaration() const;
+    const std::vector<std::unique_ptr<Statement>>& getStatements() const;
 };
 //---------------------------------------------------------------------------
 } // namespace pljit::ast

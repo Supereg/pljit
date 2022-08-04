@@ -1,7 +1,7 @@
-#include "pljit/SourceCodeManagement.hpp"
 #include "pljit/Lexer.hpp"
+#include "pljit/ParseTreeDOTVisitor.hpp"
 #include "pljit/Parser.hpp"
-#include "pljit/DOTVisitor.hpp"
+#include "pljit/SourceCodeManagement.hpp"
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 //---------------------------------------------------------------------------

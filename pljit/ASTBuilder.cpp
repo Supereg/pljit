@@ -75,7 +75,7 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const ParseTree::Pa
         return result.error();
     }
 
-    variables.emplace_back(*result);
+    variables.emplace_back(*result, declaratorList.getIdentifier().value());
 
     for (auto& [genericTerminal, identifier]: declaratorList.getAdditionalIdentifiers()) {
         result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::PARAM);
@@ -83,7 +83,7 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const ParseTree::Pa
             return result.error();
         }
 
-        variables.emplace_back(*result);
+        variables.emplace_back(*result, identifier.value());
     }
 
     return ParamDeclaration{ variables };
@@ -102,7 +102,7 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const ParseTree::Variab
         return result.error();
     }
 
-    variables.emplace_back(*result);
+    variables.emplace_back(*result, declaratorList.getIdentifier().value());
 
     for (auto& [genericTerminal, identifier]: declaratorList.getAdditionalIdentifiers()) {
         result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::CONST);
@@ -110,7 +110,7 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const ParseTree::Variab
             return result.error();
         }
 
-        variables.emplace_back(*result);
+        variables.emplace_back(*result, identifier.value());
     }
 
     return VarDeclaration{ variables };
@@ -119,19 +119,20 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const ParseTree::Variab
 Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const ParseTree::ConstantDeclarations& node) {
     Result<symbol_id> result;
     auto& initDeclaratorList = node.getInitDeclaratorList();
+    auto& initDeclarator = initDeclaratorList.getInitDeclarator();
 
     std::vector<Variable> variables;
     std::vector<Literal> literals;
     variables.reserve(1 + initDeclaratorList.getAdditionalInitDeclarators().size());
     literals.reserve(1 + initDeclaratorList.getAdditionalInitDeclarators().size());
 
-    result = symbolTable.declareIdentifier(initDeclaratorList.getInitDeclarator().getIdentifier(), SymbolTable::SymbolType::CONST);
+    result = symbolTable.declareIdentifier(initDeclarator.getIdentifier(), SymbolTable::SymbolType::CONST);
     if (result.failure()) {
         return result.error();
     }
 
-    variables.emplace_back(*result);
-    literals.emplace_back(initDeclaratorList.getInitDeclarator().getLiteral().value());
+    variables.emplace_back(*result, initDeclarator.getIdentifier().value());
+    literals.emplace_back(initDeclarator.getLiteral().value());
 
     for (auto& [genericTerminal, declarator]: initDeclaratorList.getAdditionalInitDeclarators()) {
         result = symbolTable.declareIdentifier(declarator.getIdentifier(), SymbolTable::SymbolType::CONST);
@@ -139,7 +140,7 @@ Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const ParseTree::Co
             return result.error();
         }
 
-        variables.emplace_back(*result);
+        variables.emplace_back(*result, declarator.getIdentifier().value());
         literals.emplace_back(declarator.getLiteral().value());
     }
 
@@ -163,7 +164,10 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const ParseTree:
                 return target.error(); // TODO implicit conversion?
             }
 
-            std::unique_ptr<Statement> statement = std::make_unique<AssignmentStatement>(result.release(), Variable{ *target });
+            std::unique_ptr<Statement> statement = std::make_unique<AssignmentStatement>(
+                result.release(),
+                Variable{ *target, assignment.getIdentifier().value() }
+            );
             return statement;
         }
         case ParseTree::Statement::Type::RETURN: {
@@ -281,7 +285,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTre
                 return result.error();
             }
 
-            expression = std::make_unique<Variable>(*result);
+            expression = std::make_unique<Variable>(*result, node.asIdentifier().value());
             return expression;
         }
         case ParseTree::PrimaryExpression::Type::LITERAL:

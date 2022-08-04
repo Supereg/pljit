@@ -2,38 +2,19 @@
 // Created by Andreas Bauer on 30.07.22.
 //
 
-#include "DOTVisitor.hpp"
+#include "ParseTreeDOTVisitor.hpp"
 #include "Parser.hpp" // TODO parse tree implementation header!
 #include <iostream>
 
 //---------------------------------------------------------------------------
 namespace pljit::ParseTree {
 //---------------------------------------------------------------------------
-using std::cout;
-using std::endl;
-//---------------------------------------------------------------------------
-DOTVisitor::DOTVisitor() : ParseTreeVisitor(), node_num(0) {}
-
-void DOTVisitor::printNode(std::string_view name) const {
-    cout << "  n_" << node_num << " [label=\""<< name << "\",shape=box];" << endl;
-}
-
-void DOTVisitor::printTerminalNode(std::string_view content) const {
-    cout << "  n_" << node_num << R"( [label="\")" << content << R"(\""];)" << endl;
-}
-
-void DOTVisitor::printTerminalNode(long long content) const {
-    cout << "  n_" << node_num << "[label=\"" << content << "\"];" << endl;
-}
-
-void DOTVisitor::printEdge(unsigned root_node) const {
-    cout << "  n_" << root_node << " -- n_" << (node_num + 1) << ";" << endl;
-}
+DOTVisitor::DOTVisitor() = default;
 
 void DOTVisitor::visit(const FunctionDefinition& node) {
     unsigned root = ++node_num;
 
-    cout << "graph {" << endl;
+    printGraphHeader();
     printNode("function-definition");
 
     if (node.getParameterDeclarations()) {
@@ -54,7 +35,7 @@ void DOTVisitor::visit(const FunctionDefinition& node) {
     printEdge(root);
     node.getCompoundStatement().accept(*this);
 
-    cout << "}";
+    printGraphFooter();
 }
 
 void DOTVisitor::visit(const ParameterDeclarations& node) {

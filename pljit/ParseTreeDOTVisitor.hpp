@@ -2,25 +2,17 @@
 // Created by Andreas Bauer on 30.07.22.
 //
 
-#ifndef PLJIT_DOTVISITOR_HPP
-#define PLJIT_DOTVISITOR_HPP
+#ifndef PLJIT_PARSETREEDOTVISITOR_HPP
+#define PLJIT_PARSETREEDOTVISITOR_HPP
 #include "ParseTreeVisitor.hpp"
-#include <string>
+#include "GenericDOTVisitor.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit::ParseTree {
 //---------------------------------------------------------------------------
-class DOTVisitor: public ParseTreeVisitor {
-    unsigned node_num;
-
+class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     public:
     DOTVisitor();
-
-    private:
-    void printNode(std::string_view name) const;
-    void printTerminalNode(std::string_view content) const;
-    void printTerminalNode(long long content) const;
-    void printEdge(unsigned root_node) const;
 
     public:
     void visit(const GenericTerminal& node) override;
@@ -46,4 +38,4 @@ class DOTVisitor: public ParseTreeVisitor {
 } // namespace pljit::ParseTree
 //---------------------------------------------------------------------------
 
-#endif //PLJIT_DOTVISITOR_HPP
+#endif //PLJIT_PARSETREEDOTVISITOR_HPP
