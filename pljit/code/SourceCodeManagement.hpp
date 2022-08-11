@@ -8,9 +8,7 @@
 #include <vector>
 
 //---------------------------------------------------------------------------
-namespace pljit {
-// TODO introduce "src" namespace!
-
+namespace pljit::code {
 //---------------------------------------------------------------------------
 class SourceCodeReference; // TODO move those to individual headers?
 class SourceCodeError;
@@ -75,8 +73,7 @@ class SourceCodeManagement {
 
     private:
     void print_error(ErrorType type, std::string_view message, const SourceCodeReference& reference) const;
-};
-//---------------------------------------------------------------------------
+}; //---------------------------------------------------------------------------
 class SourceCodeReference {
     friend class SourceCodeManagement::iterator; // allows access to private constructors!
     friend class SourceCodeError; // allow access to `management` for error printing! TODO coupling?
@@ -98,8 +95,7 @@ class SourceCodeReference {
     SourceCodeError& withCause(SourceCodeError&& cause);
 
     bool operator==(const SourceCodeReference& rhs) const;
-};
-//---------------------------------------------------------------------------
+}; //---------------------------------------------------------------------------
 class SourceCodeError {
     SourceCodeManagement::ErrorType errorType;
     std::string_view errorMessage;
@@ -122,7 +118,7 @@ class SourceCodeError {
     // TODO API ability to derive line numbers! (also useful for tests!)
 };
 //---------------------------------------------------------------------------
-} // namespace pljit
+} // namespace pljit::code
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_SOURCECODEMANAGEMENT_H

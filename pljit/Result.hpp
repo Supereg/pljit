@@ -5,28 +5,28 @@
 #ifndef PLJIT_RESULT_HPP
 #define PLJIT_RESULT_HPP
 
-#include "SourceCodeManagement.hpp"
+#include "code/SourceCodeManagement.hpp"
+#include <cassert>
 #include <concepts>
 #include <optional>
-#include <cassert>
 
 namespace pljit {
 //---------------------------------------------------------------------------
 template <typename T>
 class Result {
-    std::optional<pljit::SourceCodeError> source_error;
+    std::optional<code::SourceCodeError> source_error;
     T result_content;
 
     public:
     Result() requires std::default_initializable<T>;
     Result(T result) requires std::move_constructible<T>;
-    Result(SourceCodeError error) requires std::default_initializable<T>;
+    Result(code::SourceCodeError error) requires std::default_initializable<T>;
 
     const T& value() const;
 
     T&& release() requires std::movable<T>;
 
-    SourceCodeError error() const;
+    code::SourceCodeError error() const;
 
     // TODO prepend with "is" keyword! Both!
     bool success() const;
@@ -45,7 +45,7 @@ template <typename T>
 Result<T>::Result(T result) requires std::move_constructible<T> : source_error(), result_content(std::move(result)) {}
 
 template <typename T>
-Result<T>::Result(SourceCodeError error) requires std::default_initializable<T> : source_error(std::move(error)), result_content() {}
+Result<T>::Result(code::SourceCodeError error) requires std::default_initializable<T> : source_error(std::move(error)), result_content() {}
 
 template <typename T>
 const T& Result<T>::value() const {
@@ -60,7 +60,7 @@ T&& Result<T>::release() requires std::movable<T> {
 }
 
 template <typename T>
-SourceCodeError Result<T>::error() const {
+code::SourceCodeError Result<T>::error() const {
     assert(source_error.has_value() && "LexerResult: tried accessing non-existent error!");
     return *source_error;
 }

@@ -3,6 +3,7 @@
 //
 
 #include "Lexer.hpp"
+#include "code/SourceCodeManagement.hpp"
 #include <cassert>
 
 // TODO AST: no symbols for separators. Still source code references for error printing(?)!
@@ -16,7 +17,7 @@
 // TODO using namespace pljit?
 
 //---------------------------------------------------------------------------
-pljit::Lexer::Lexer(const SourceCodeManagement& management) : management(&management), current_position(management.begin()), returnedWithError(false) {}
+pljit::Lexer::Lexer(const code::SourceCodeManagement& management) : management(&management), current_position(management.begin()), returnedWithError(false) {}
 
 bool pljit::Lexer::endOfStream() {
     // might be the case that there are more than one whitespaces after the `.` terminator.
@@ -28,7 +29,7 @@ bool pljit::Lexer::endOfStream() {
     return current_position == management->end();
 }
 
-pljit::SourceCodeManagement::iterator pljit::Lexer::cur_position() const {
+pljit::code::SourceCodeManagement::iterator pljit::Lexer::cur_position() const {
     return current_position;
 }
 
@@ -115,7 +116,7 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
             case Token::ExtendResult::ERRONEOUS_CHARACTER: {
                 return current_position
                     .codeReference()
-                    .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected character!");
+                    .makeError(code::SourceCodeManagement::ErrorType::ERROR, "unexpected character!");
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -134,7 +135,7 @@ pljit::Result<pljit::Token> pljit::Lexer::next() {
         // TODO add member func to check for end of stream!
         return current_position
             .codeReference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected end of stream!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "unexpected end of stream!");
     }
 
     token.finalize();
@@ -196,12 +197,12 @@ pljit::Token::TokenType pljit::Token::getType() const {
     return type;
 }
 
-pljit::SourceCodeReference pljit::Token::reference() const {
+pljit::code::SourceCodeReference pljit::Token::reference() const {
     assert(type != TokenType::EMPTY && "Can't access the source code reference of an empty token!");
     return source_code;
 }
 
-pljit::SourceCodeError pljit::Token::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
+pljit::code::SourceCodeError pljit::Token::makeError(code::SourceCodeManagement::ErrorType errorType, std::string_view message) const {
     return reference().makeError(errorType, message);
 }
 
@@ -213,7 +214,7 @@ bool pljit::Token::is(pljit::Token::TokenType token_type, std::string_view conte
     return type == token_type && source_code.content() == content;
 }
 
-pljit::Token::ExtendResult pljit::Token::extend(pljit::SourceCodeManagement::iterator character) {
+pljit::Token::ExtendResult pljit::Token::extend(code::SourceCodeManagement::iterator character) {
     TokenType next_type = typeOfCharacter(*character);
     if (next_type == TokenType::EMPTY) {
         // encountered unknown character type!

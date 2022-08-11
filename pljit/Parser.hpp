@@ -5,9 +5,9 @@
 #ifndef PLJIT_PARSER_HPP
 #define PLJIT_PARSER_HPP
 
-#include "SourceCodeManagement.hpp"
 #include "Lexer.hpp"
 #include "Result.hpp"
+#include "code/SourceCodeManagement.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -26,14 +26,14 @@ class Symbol {
     friend class pljit::Parser;
 
     protected:
-    SourceCodeReference src_reference; // TODO getter checks for nullptr!!!
+    code::SourceCodeReference src_reference; // TODO getter checks for nullptr!!!
     public:
     Symbol();
-    Symbol(SourceCodeReference src_reference);
+    Symbol(code::SourceCodeReference src_reference);
 
     virtual ~Symbol() = default;
 
-    const SourceCodeReference& reference() const;
+    const code::SourceCodeReference& reference() const;
 
     virtual void accept(ParseTreeVisitor& visitor) const = 0;
 };
@@ -41,7 +41,7 @@ class Symbol {
 class GenericTerminal: public Symbol {
     public:
     GenericTerminal();
-    explicit GenericTerminal(SourceCodeReference src_reference);
+    explicit GenericTerminal(code::SourceCodeReference src_reference);
 
     std::string_view value() const;
     void accept(ParseTreeVisitor& visitor) const override;
@@ -61,7 +61,7 @@ class Literal: public Symbol {
 
     public:
     Literal();
-    Literal(SourceCodeReference src_reference, long long literalValue);
+    Literal(code::SourceCodeReference src_reference, long long literalValue);
 
     long long value() const;
     std::string_view string_value() const;
@@ -362,30 +362,30 @@ class Parser { // TODO "RecursiveDescentParser"
 
     Result<ParseTree::FunctionDefinition> parse_program();
 
-    [[nodiscard]] std::optional<SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseStatementList(ParseTree::StatementList& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseStatement(ParseTree::Statement& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseStatementList(ParseTree::StatementList& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseStatement(ParseTree::Statement& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination);
 
-    [[nodiscard]] std::optional<SourceCodeError> parseIdentifier(ParseTree::Identifier& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseLiteral(ParseTree::Literal& destination);
-    [[nodiscard]] std::optional<SourceCodeError> parseGenericTerminal(
+    [[nodiscard]] std::optional<code::SourceCodeError> parseIdentifier(ParseTree::Identifier& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseLiteral(ParseTree::Literal& destination);
+    [[nodiscard]] std::optional<code::SourceCodeError> parseGenericTerminal(
         ParseTree::GenericTerminal& destination,
         Token::TokenType expected_type,
         std::string_view expected_content,

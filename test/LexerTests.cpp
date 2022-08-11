@@ -1,7 +1,7 @@
-#include "pljit/SourceCodeManagement.hpp"
 #include "pljit/Lexer.hpp"
-#include <gtest/gtest.h>
+#include "pljit/code/SourceCodeManagement.hpp"
 #include "utils/CaptureCOut.hpp"
+#include <gtest/gtest.h>
 //---------------------------------------------------------------------------
 using namespace pljit;
 //---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ using namespace pljit;
 TEST(Lexer, testBasicTokens) {
     std::string program = "PARAM width, height, depth;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -37,7 +37,7 @@ TEST(Lexer, testIllegalToken) {
     CaptureCOut capture; // TODO remove requirement for capture!
 
     std::string program = "PARAM width? height";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -55,7 +55,7 @@ TEST(Lexer, testIllegalToken) {
 TEST(Lexer, testVar) {
     std::string program = "VAR volume;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -68,7 +68,7 @@ TEST(Lexer, testVar) {
 TEST(Lexer, testConst) {
     std::string program = "CONST density = 2400;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -85,7 +85,7 @@ TEST(Lexer, testConst) {
 TEST(Lexer, testArithmeticExpression) {
     std::string program = "(23* 2) + (3 / (4-2))";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -118,7 +118,7 @@ TEST(Lexer, testArithmeticExpression) {
 TEST(Lexer, testIdentifierLiteralsConcatenated) {
     std::string program = "asdf231index465fooRETURN987sBEGIN0abcdefghijklmnopqrstuvwxyz1ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -141,7 +141,7 @@ TEST(Lexer, testIdentifierLiteralsConcatenated) {
 TEST(Lexer, testConcatenatedOperators) {
     std::string program = "++/-+;*:=*/ /";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -164,7 +164,7 @@ TEST(Lexer, testConcatenatedOperators) {
 TEST(Lexer, testConcatenatedParenthesis) {
     std::string program = "(( )((,)( ((";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -186,7 +186,7 @@ TEST(Lexer, testConcatenatedParenthesis) {
 TEST(Lexer, testConcatenatedSeparators) {
     std::string program = ",;,,;;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -204,7 +204,7 @@ TEST(Lexer, testConcatenatedSeparators) {
 TEST(Lexer, testAssignment) {
     std::string program = "volume := width * height * depth;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -224,7 +224,7 @@ TEST(Lexer, testAssignment) {
 TEST(Lexer, testReturn) {
     std::string program = "RETURN density*volume;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -247,7 +247,7 @@ TEST(Lexer, testWholeProgram) {
                           "\tRETURN density * volume\n"
                           "END.";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -297,7 +297,7 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
                           "\tRETURN 0\n"
                           "END.\n"
                           "RETURN 1";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;
@@ -322,7 +322,7 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
 
 TEST(Lexer, testWhitespacesAfterTerminator) {
     std::string program = "program.\n ";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer { management };
 
     Result<Token> result;
@@ -336,7 +336,7 @@ TEST(Lexer, testWhitespacesAfterTerminator) {
 TEST(Lexer, testPeekNext) {
     std::string program = "PARAM width, height, depth;";
 
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
 
     Result<Token> result;

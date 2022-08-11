@@ -5,11 +5,11 @@
 #ifndef PLJIT_SYMBOLTABLE_HPP
 #define PLJIT_SYMBOLTABLE_HPP
 
-#include "SourceCodeManagement.hpp"
-#include "Result.hpp"
 #include "Parser.hpp" // TODO parse tree!
-#include <vector>
+#include "Result.hpp"
+#include "code/SourceCodeManagement.hpp"
 #include <unordered_map>
+#include <vector>
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {
@@ -21,15 +21,15 @@ class SymbolTable {
 
     class Symbol {
         private:
-        SourceCodeReference src_reference;
+        code::SourceCodeReference src_reference;
         symbol_id symbolId;
         bool constant;
         bool initialized;
 
         public:
-        Symbol(SourceCodeReference src_reference, symbol_id symbolId, bool constant, bool initialized);
+        Symbol(code::SourceCodeReference src_reference, symbol_id symbolId, bool constant, bool initialized);
 
-        const SourceCodeReference& reference() const;
+        const code::SourceCodeReference& reference() const;
 
         symbol_id id() const;
         bool isConstant() const;

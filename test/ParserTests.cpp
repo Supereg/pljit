@@ -1,14 +1,14 @@
 #include "pljit/Lexer.hpp"
 #include "pljit/ParseTreeDOTVisitor.hpp"
 #include "pljit/Parser.hpp"
-#include "pljit/SourceCodeManagement.hpp"
+#include "pljit/code/SourceCodeManagement.hpp"
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
 TEST(Parser, testGenericTerminal) {
-    SourceCodeManagement management{"BEGIN"};
+    code::SourceCodeManagement management{"BEGIN"};
     Lexer lexer{management};
     Parser parser{lexer};
 
@@ -19,7 +19,7 @@ TEST(Parser, testGenericTerminal) {
 }
 
 TEST(Parser, testLiteral) {
-    SourceCodeManagement management{"02731"};
+    code::SourceCodeManagement management{"02731"};
     Lexer lexer{management};
     Parser parser{lexer};
 
@@ -30,7 +30,7 @@ TEST(Parser, testLiteral) {
 }
 
 TEST(Parser, testIdentifier) {
-    SourceCodeManagement management{"Program"};
+    code::SourceCodeManagement management{"Program"};
     Lexer lexer{management};
     Parser parser{lexer};
 
@@ -42,7 +42,7 @@ TEST(Parser, testIdentifier) {
 
 TEST(Parser, testPrimaryExpression) {
     {
-        SourceCodeManagement management{"width"};
+        code::SourceCodeManagement management{"width"};
         Lexer lexer{management};
         Parser parser{lexer};
 
@@ -52,7 +52,7 @@ TEST(Parser, testPrimaryExpression) {
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
-        SourceCodeManagement management{"12"};
+        code::SourceCodeManagement management{"12"};
         Lexer lexer{management};
         Parser parser{lexer};
 
@@ -62,7 +62,7 @@ TEST(Parser, testPrimaryExpression) {
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
-        SourceCodeManagement management{"(12)"};
+        code::SourceCodeManagement management{"(12)"};
         Lexer lexer{management};
         Parser parser{lexer};
 
@@ -78,7 +78,7 @@ TEST(Parser, testPrimaryExpression) {
 }
 
 TEST(Parser, testExampleProgram) {
-    SourceCodeManagement management{ "PARAM width, height, depth;\n"
+    code::SourceCodeManagement management{ "PARAM width, height, depth;\n"
                                       "VAR volume;\n"
                                       "CONST density = 2400;\n"
                                       "BEGIN\n"

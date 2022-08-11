@@ -3,6 +3,7 @@
 //
 
 #include "SymbolTable.hpp"
+#include "code/SourceCodeManagement.hpp"
 #include <cassert>
 
 //---------------------------------------------------------------------------
@@ -33,10 +34,10 @@ Result<symbol_id> SymbolTable::declareIdentifier(const ParseTree::Identifier& id
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (existingSymbol) {
         return identifier.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Redefinition of identifier!")
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Redefinition of identifier!")
             .withCause(
                 existingSymbol->reference()
-                    .makeError(SourceCodeManagement::ErrorType::NOTE, "Original declaration here"));
+                    .makeError(code::SourceCodeManagement::ErrorType::NOTE, "Original declaration here"));
     }
 
     symbol_id id = symbols.size() + 1; // symbol id of 0 is invalid!
@@ -54,12 +55,12 @@ Result<symbol_id> SymbolTable::useIdentifier(const ParseTree::Identifier& identi
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
     }
 
     if (!existingSymbol->isInitialized()) {
         return identifier.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Tried to use uninitialized variable!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Tried to use uninitialized variable!");
     }
 
     return existingSymbol->id();
@@ -69,21 +70,21 @@ Result<symbol_id> SymbolTable::useAsAssignmentTarget(const ParseTree::Identifier
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
     }
 
     if (existingSymbol->isConstant()) {
         return identifier.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Can't assign to constant!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Can't assign to constant!");
     }
 
     return existingSymbol->id();
 }
 //---------------------------------------------------------------------------
-SymbolTable::Symbol::Symbol(SourceCodeReference src_reference, symbol_id symbolId, bool constant, bool initialized)
+SymbolTable::Symbol::Symbol(code::SourceCodeReference src_reference, symbol_id symbolId, bool constant, bool initialized)
     : src_reference(src_reference), symbolId(symbolId), constant(constant), initialized(initialized) {}
 
-const SourceCodeReference& SymbolTable::Symbol::reference() const {
+const code::SourceCodeReference& SymbolTable::Symbol::reference() const {
     return src_reference;
 }
 

@@ -5,10 +5,10 @@
 #ifndef PLJIT_LEXER_HPP
 #define PLJIT_LEXER_HPP
 
-#include "SourceCodeManagement.hpp"
 #include "Result.hpp"
-#include <optional>
+#include "code/SourceCodeManagement.hpp"
 #include <cassert>
+#include <optional>
 
 //---------------------------------------------------------------------------
 namespace pljit {
@@ -84,7 +84,7 @@ class Token {
 
     private:
     TokenType type;
-    SourceCodeReference source_code;
+    code::SourceCodeReference source_code;
 
     public:
 
@@ -117,7 +117,7 @@ class Token {
      * Get access to the source code of the `Token`.
      * @return Returns the {@class SourceCodeReference} of the Token.
      */
-    SourceCodeReference reference() const;
+    code::SourceCodeReference reference() const;
 
     /**
      * Shorthand way to create a {@class SourceCodeError} at the current {@class SourceCodeReference}.
@@ -125,7 +125,7 @@ class Token {
      * @param message The view to the error message.
      * @return The created {@class SourceCodeError} with the given type and message.
      */
-    [[nodiscard]] SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+    [[nodiscard]] code::SourceCodeError makeError(code::SourceCodeManagement::ErrorType errorType, std::string_view message) const;
 
     /**
      * Access to the Token's source code content.
@@ -146,7 +146,7 @@ class Token {
      * @param character An iterator pointing to a character which should be added to the Token.
      * @return Returns the result of the extend operation.
      */
-    ExtendResult extend(SourceCodeManagement::iterator character);
+    ExtendResult extend(code::SourceCodeManagement::iterator character);
 
     void finalize();
 
@@ -154,19 +154,19 @@ class Token {
 };
 //---------------------------------------------------------------------------
 class Lexer {
-    const SourceCodeManagement* management;
-    SourceCodeManagement::iterator current_position;
+    const code::SourceCodeManagement* management;
+    code::SourceCodeManagement::iterator current_position;
 
     /// Temporary variable to store Result instances that were peeked but not yet consumed!
     std::optional<Result<Token>> next_result;
     bool returnedWithError;
 
     public:
-    explicit Lexer(const SourceCodeManagement& management);
+    explicit Lexer(const code::SourceCodeManagement& management);
 
     bool endOfStream();
 
-    SourceCodeManagement::iterator cur_position() const;
+    code::SourceCodeManagement::iterator cur_position() const;
 
     /**
      * Peeks the next `Token`.

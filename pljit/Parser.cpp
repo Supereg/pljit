@@ -4,6 +4,7 @@
 
 #include "Parser.hpp"
 #include "ParseTreeVisitor.hpp"
+#include "code/SourceCodeManagement.hpp"
 #include <charconv>
 
 // TODO namespaces in the implementationf files!
@@ -17,14 +18,14 @@ namespace ParseTree {
 //---------------------------------------------------------------------------
 Symbol::Symbol() : src_reference() {}
 
-const SourceCodeReference& Symbol::reference() const {
+const code::SourceCodeReference& Symbol::reference() const {
     return src_reference;
 }
 
-Symbol::Symbol(SourceCodeReference src_reference) : src_reference(src_reference) {}
+Symbol::Symbol(code::SourceCodeReference src_reference) : src_reference(src_reference) {}
 //---------------------------------------------------------------------------
 GenericTerminal::GenericTerminal() = default;
-GenericTerminal::GenericTerminal(SourceCodeReference src_reference) : Symbol(src_reference) {}
+GenericTerminal::GenericTerminal(code::SourceCodeReference src_reference) : Symbol(src_reference) {}
 
 std::string_view GenericTerminal::value() const {
     return src_reference.content();
@@ -45,7 +46,7 @@ void Identifier::accept(ParseTreeVisitor& visitor) const {
 }
 //---------------------------------------------------------------------------
 Literal::Literal() : literalValue(0) {}
-Literal::Literal(SourceCodeReference src_reference, long long int literalValue) : Symbol(src_reference), literalValue(literalValue) {}
+Literal::Literal(code::SourceCodeReference src_reference, long long int literalValue) : Symbol(src_reference), literalValue(literalValue) {}
 
 long long Literal::value() const {
     return literalValue;
@@ -355,7 +356,7 @@ Result<FunctionDefinition> Parser::parse_program() { // TODO whats the cache lin
     return definition;
 }
 
-std::optional<SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinition& destination) {
+std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinition& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -400,7 +401,7 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinitio
     }
 
     if (result->getType() != Token::TokenType::KEYWORD) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected `BEGIN` keyword!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected `BEGIN` keyword!");
     }
 
     if (auto error = parseCompoundStatement(destination.compoundStatement);
@@ -414,19 +415,19 @@ std::optional<SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinitio
     }
 
     if (!result->is(Token::TokenType::SEPARATOR, Separator::END_OF_PROGRAM)) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected `.` terminator!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected `.` terminator!");
     }
 
     if (!lexer->endOfStream()) {
         return lexer->cur_position()
             .codeReference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected character after end of program terminator!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "unexpected character after end of program terminator!");
     }
 
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParameterDeclarations>& destination) {
+std::optional<code::SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParameterDeclarations>& destination) {
     ParameterDeclarations declarations;
 
     if (auto error = parseGenericTerminal(declarations.paramKeyword, Token::TokenType::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
@@ -448,7 +449,7 @@ std::optional<SourceCodeError> Parser::parseParameterDeclarations(std::optional<
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<VariableDeclarations>& destination) {
+std::optional<code::SourceCodeError> Parser::parseVariableDeclarations(std::optional<VariableDeclarations>& destination) {
     VariableDeclarations declarations;
 
     if (auto error = parseGenericTerminal(declarations.varKeyword, Token::TokenType::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
@@ -470,7 +471,7 @@ std::optional<SourceCodeError> Parser::parseVariableDeclarations(std::optional<V
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<ConstantDeclarations>& destination) {
+std::optional<code::SourceCodeError> Parser::parseConstantDeclarations(std::optional<ConstantDeclarations>& destination) {
     ConstantDeclarations declarations;
 
     if (auto error = parseGenericTerminal(declarations.constKeyword, Token::TokenType::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
@@ -492,7 +493,7 @@ std::optional<SourceCodeError> Parser::parseConstantDeclarations(std::optional<C
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseDeclaratorList(DeclaratorList& destination) {
+std::optional<code::SourceCodeError> Parser::parseDeclaratorList(DeclaratorList& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
@@ -526,7 +527,7 @@ std::optional<SourceCodeError> Parser::parseDeclaratorList(DeclaratorList& desti
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseInitDeclaratorList(InitDeclaratorList& destination) {
+std::optional<code::SourceCodeError> Parser::parseInitDeclaratorList(InitDeclaratorList& destination) {
     if (auto error = parseInitDeclarator(destination.initDeclarator);
         error.has_value()) {
         return error;
@@ -558,7 +559,7 @@ std::optional<SourceCodeError> Parser::parseInitDeclaratorList(InitDeclaratorLis
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseInitDeclarator(InitDeclarator& destination) {
+std::optional<code::SourceCodeError> Parser::parseInitDeclarator(InitDeclarator& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
@@ -577,7 +578,7 @@ std::optional<SourceCodeError> Parser::parseInitDeclarator(InitDeclarator& desti
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseCompoundStatement(CompoundStatement& destination) {
+std::optional<code::SourceCodeError> Parser::parseCompoundStatement(CompoundStatement& destination) {
     if (auto error = parseGenericTerminal(destination.beginKeyword, Token::TokenType::KEYWORD, Keyword::BEGIN, "Expected `BEGIN` keyword!");
         error.has_value()) {
         return error;
@@ -596,7 +597,7 @@ std::optional<SourceCodeError> Parser::parseCompoundStatement(CompoundStatement&
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseStatementList(StatementList& destination) {
+std::optional<code::SourceCodeError> Parser::parseStatementList(StatementList& destination) {
     if (auto error = parseStatement(destination.statement);
         error.has_value()) {
         return error;
@@ -627,7 +628,7 @@ std::optional<SourceCodeError> Parser::parseStatementList(StatementList& destina
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseStatement(Statement& destination) {
+std::optional<code::SourceCodeError> Parser::parseStatement(Statement& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -659,13 +660,13 @@ std::optional<SourceCodeError> Parser::parseStatement(Statement& destination) {
         destination.type = Statement::Type::ASSIGNMENT;
         destination.symbols.push_back(std::make_unique<AssignmentExpression>(std::move(expression)));
     } else {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
     }
 
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseAssignmentExpression(AssignmentExpression& destination) {
+std::optional<code::SourceCodeError> Parser::parseAssignmentExpression(AssignmentExpression& destination) {
     if (auto error = parseIdentifier(destination.identifier);
         error.has_value()) {
         return error;
@@ -684,7 +685,7 @@ std::optional<SourceCodeError> Parser::parseAssignmentExpression(AssignmentExpre
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseAdditiveExpression(AdditiveExpression& destination) {
+std::optional<code::SourceCodeError> Parser::parseAdditiveExpression(AdditiveExpression& destination) {
     if (auto error = parseMultiplicativeExpression(destination.expression);
         error.has_value()) {
         return error;
@@ -712,7 +713,7 @@ std::optional<SourceCodeError> Parser::parseAdditiveExpression(AdditiveExpressio
 
     return {};
 }
-std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(MultiplicativeExpression& destination) {
+std::optional<code::SourceCodeError> Parser::parseMultiplicativeExpression(MultiplicativeExpression& destination) {
     if (auto error = parseUnaryExpression(destination.expression);
         error.has_value()) {
         return error;
@@ -740,7 +741,7 @@ std::optional<SourceCodeError> Parser::parseMultiplicativeExpression(Multiplicat
 
     return {};
 }
-std::optional<SourceCodeError> Parser::parseUnaryExpression(UnaryExpression& destination) {
+std::optional<code::SourceCodeError> Parser::parseUnaryExpression(UnaryExpression& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -761,7 +762,7 @@ std::optional<SourceCodeError> Parser::parseUnaryExpression(UnaryExpression& des
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression& destination) {
+std::optional<code::SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression& destination) {
     Result<Token> result;
 
     result = lexer->peek_next();
@@ -806,7 +807,7 @@ std::optional<SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression&
 
         if (auto error = parseGenericTerminal(close, Token::TokenType::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
             error.has_value()) {
-            return error->withCause(open.reference().makeError(SourceCodeManagement::ErrorType::NOTE, "opening bracket here"));
+            return error->withCause(open.reference().makeError(code::SourceCodeManagement::ErrorType::NOTE, "opening bracket here"));
         }
 
         destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
@@ -814,13 +815,13 @@ std::optional<SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression&
         destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
         destination.symbols.push_back(std::make_unique<GenericTerminal>(close));
     } else {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
     }
 
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseIdentifier(Identifier& destination) {
+std::optional<code::SourceCodeError> Parser::parseIdentifier(Identifier& destination) {
     Result<Token> result;
 
     result = lexer->consume_next();
@@ -829,14 +830,14 @@ std::optional<SourceCodeError> Parser::parseIdentifier(Identifier& destination) 
     }
 
     if (result->getType() != Token::TokenType::IDENTIFIER) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected string!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected string!");
     }
 
     destination.src_reference = result->reference();
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
+std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) {
     Result<Token> result;
 
     result = lexer->consume_next();
@@ -845,7 +846,7 @@ std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
     }
 
     if (result->getType() != Token::TokenType::LITERAL) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Expected literal!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected literal!");
     }
 
     std::string_view literal = result->reference().content();
@@ -855,13 +856,13 @@ std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
 
     if (conversion.ec != std::errc{}) {
         if (conversion.ec == std::errc::result_out_of_range) {
-            return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Integer literal is out of range. Expected singed 64-bit!");
+            return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Integer literal is out of range. Expected singed 64-bit!");
         }
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered unexpected error parsing integer literal!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered unexpected error parsing integer literal!");
     }
 
     if (conversion.ptr != literal.data() + literal.size()) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
     }
 
     // TODO might be bad style; writing into variables?
@@ -871,7 +872,7 @@ std::optional<SourceCodeError> Parser::parseLiteral(Literal& destination) {
     return {};
 }
 
-std::optional<SourceCodeError> Parser::parseGenericTerminal(
+std::optional<code::SourceCodeError> Parser::parseGenericTerminal(
     GenericTerminal& destination,
     Token::TokenType expected_type,
     std::string_view expected_content, // NOLINT(bugprone-easily-swappable-parameters)
@@ -884,7 +885,7 @@ std::optional<SourceCodeError> Parser::parseGenericTerminal(
     }
 
     if (!result->is(expected_type, expected_content)) {
-        return result->makeError(SourceCodeManagement::ErrorType::ERROR, potential_error_message);
+        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, potential_error_message);
     }
 
     destination.src_reference = result->reference();

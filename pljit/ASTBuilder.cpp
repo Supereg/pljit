@@ -5,6 +5,7 @@
 #include "ASTBuilder.hpp"
 #include "AST.hpp"
 #include "Parser.hpp" // TODO ParseTree header!
+#include "code/SourceCodeManagement.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {
@@ -183,7 +184,7 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const ParseTree:
         }
         case ParseTree::Statement::Type::NONE:
             return node.reference()
-                .makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parser tree state! Expected ASSIGNMENT or RETURN!");
+                .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parser tree state! Expected ASSIGNMENT or RETURN!");
     }
 
     return {};
@@ -216,7 +217,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTre
         return expression;
     } else {
         return node.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
     }
 }
 Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTree::MultiplicativeExpression& node) {
@@ -247,7 +248,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTre
         return expression;
     } else {
         return node.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected MULTIPLICATION or DIVISION!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected MULTIPLICATION or DIVISION!");
     }
 }
 Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTree::UnaryExpression& node) {
@@ -272,7 +273,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTre
         return expression;
     } else {
         return node.reference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
     }
 }
 Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTree::PrimaryExpression& node) {
@@ -297,7 +298,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const ParseTre
         }
         default:
             return node.reference()
-                .makeError(SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected IDENTIFIER, LITERAL or ADDITIVE_EXPRESSION!");
+                .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected IDENTIFIER, LITERAL or ADDITIVE_EXPRESSION!");
     }
 }
 //---------------------------------------------------------------------------

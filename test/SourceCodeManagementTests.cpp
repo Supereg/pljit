@@ -1,23 +1,23 @@
-#include "pljit/SourceCodeManagement.hpp"
-#include <gtest/gtest.h>
+#include "pljit/code/SourceCodeManagement.hpp"
 #include "utils/CaptureCOut.hpp"
+#include <gtest/gtest.h>
 //---------------------------------------------------------------------------
 using namespace pljit;
 //---------------------------------------------------------------------------
 TEST(SourceCodeManagement, testIteratorConcept) {
-    ASSERT_TRUE(std::bidirectional_iterator<SourceCodeManagement::iterator>);
+    ASSERT_TRUE(std::bidirectional_iterator<code::SourceCodeManagement::iterator>);
 }
 
 TEST(SourceCodeManagement, testProgramStorage) {
     std::string program = "Hello World;";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
     ASSERT_EQ(management.content(), "Hello World;");
 }
 
 TEST(SourceCodeManagement, testSourceCodeIterator) {
     std::string program = "Hello World;";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
     auto iterator = management.begin();
     ASSERT_EQ(*iterator, 'H');
@@ -33,22 +33,22 @@ TEST(SourceCodeManagement, testSourceCodeIterator) {
     auto reference = iterator.codeReference();
     ASSERT_EQ(reference.content(), "H");
 
-    ASSERT_NE(iterator, SourceCodeManagement::iterator());
-    ASSERT_EQ(SourceCodeManagement::iterator(), SourceCodeManagement::iterator());
+    ASSERT_NE(iterator, code::SourceCodeManagement::iterator());
+    ASSERT_EQ(code::SourceCodeManagement::iterator(), code::SourceCodeManagement::iterator());
 }
 
 TEST(SourceCodeManagement, testSourceCodeError) {
     std::string program = "Hello world";
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
     auto reference = management.begin().codeReference();
     reference.extend(10);
 
-    SourceCodeError error = reference.makeError(pljit::SourceCodeManagement::ErrorType::NOTE, "some error!");
+    code::SourceCodeError error = reference.makeError(code::SourceCodeManagement::ErrorType::NOTE, "some error!");
 
     ASSERT_EQ(error.reference().content(), "Hello world");
     ASSERT_EQ(error.message(), "some error!");
-    ASSERT_EQ(error.type(), pljit::SourceCodeManagement::ErrorType::NOTE);
+    ASSERT_EQ(error.type(), code::SourceCodeManagement::ErrorType::NOTE);
 
     CaptureCOut capture;
 
@@ -60,10 +60,10 @@ TEST(SourceCodeManagement, testSourceCodeError) {
 
 TEST(SourceCodeManagement, testEmptySourceCode) {
     std::string program; // empty string
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
-    SourceCodeError error{
-        pljit::SourceCodeManagement::ErrorType::ERROR,
+    code::SourceCodeError error{
+        code::SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         management.begin().codeReference()
     };
@@ -78,10 +78,10 @@ TEST(SourceCodeManagement, testEmptySourceCode) {
 
 TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
     std::string program = "some program\nnew"; // empty string
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
-    SourceCodeError error{
-        pljit::SourceCodeManagement::ErrorType::ERROR,
+    code::SourceCodeError error{
+        code::SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         management.end().codeReference()
     };
@@ -96,10 +96,10 @@ TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
 
 TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
     std::string program = "some program\n"; // empty string
-    SourceCodeManagement management{ std::move(program) };
+    code::SourceCodeManagement management{ std::move(program) };
 
-    SourceCodeError error{
-        pljit::SourceCodeManagement::ErrorType::ERROR,
+    code::SourceCodeError error{
+        code::SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         (--management.end()).codeReference()
     };

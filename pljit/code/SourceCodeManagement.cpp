@@ -7,25 +7,27 @@
 #include <iostream>
 
 //---------------------------------------------------------------------------
-pljit::SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
+namespace pljit::code {
+//---------------------------------------------------------------------------
+SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
     : source_code(source_code),
       source_code_view(this->source_code){
 }
 
-pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::begin() const {
+SourceCodeManagement::iterator SourceCodeManagement::begin() const {
     return { this, source_code_view.begin() };
 }
 
-pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::end() const {
+SourceCodeManagement::iterator SourceCodeManagement::end() const {
     return { this, source_code_view.end() };
 }
 
-std::string_view pljit::SourceCodeManagement::content() const {
+std::string_view SourceCodeManagement::content() const {
     return source_code_view;
 }
 
-void pljit::SourceCodeManagement::print_error(
-    pljit::SourceCodeManagement::ErrorType type,
+void SourceCodeManagement::print_error(
+    SourceCodeManagement::ErrorType type,
     std::string_view message,
     const SourceCodeReference& reference
 ) const {
@@ -83,42 +85,42 @@ void pljit::SourceCodeManagement::print_error(
     std::cout << std::endl;
 }
 //---------------------------------------------------------------------------
-pljit::SourceCodeManagement::iterator::iterator(const pljit::SourceCodeManagement* management, std::string_view::iterator view_iterator)
+SourceCodeManagement::iterator::iterator(const SourceCodeManagement* management, std::string_view::iterator view_iterator)
     : management(management), view_iterator(view_iterator) {}
 
-pljit::SourceCodeManagement::iterator::iterator() : management(nullptr), view_iterator() {}
+SourceCodeManagement::iterator::iterator() : management(nullptr), view_iterator() {}
 
-bool pljit::SourceCodeManagement::iterator::operator==(const pljit::SourceCodeManagement::iterator& other) const {
+bool SourceCodeManagement::iterator::operator==(const SourceCodeManagement::iterator& other) const {
     return management == other.management && view_iterator == other.view_iterator;
 }
 
-pljit::SourceCodeManagement::iterator& pljit::SourceCodeManagement::iterator::operator++() {
+SourceCodeManagement::iterator& SourceCodeManagement::iterator::operator++() {
     ++view_iterator;
     return *this;
 }
 
-pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::iterator::operator++(int) {
+SourceCodeManagement::iterator SourceCodeManagement::iterator::operator++(int) {
     iterator copy{*this};
     operator++();
     return copy;
 }
 
-pljit::SourceCodeManagement::iterator& pljit::SourceCodeManagement::iterator::operator--() {
+SourceCodeManagement::iterator& SourceCodeManagement::iterator::operator--() {
     --view_iterator;
     return *this;
 }
 
-pljit::SourceCodeManagement::iterator pljit::SourceCodeManagement::iterator::operator--(int) {
+SourceCodeManagement::iterator SourceCodeManagement::iterator::operator--(int) {
     iterator copy{*this};
     operator--();
     return copy;
 }
 
-pljit::SourceCodeManagement::iterator::reference pljit::SourceCodeManagement::iterator::operator*() const {
+SourceCodeManagement::iterator::reference SourceCodeManagement::iterator::operator*() const {
     return *view_iterator;
 }
 
-pljit::SourceCodeReference pljit::SourceCodeManagement::iterator::codeReference() const {
+SourceCodeReference SourceCodeManagement::iterator::codeReference() const {
     std::string_view::iterator begin = &operator*();
     std::string_view::iterator end = begin;
     ++end;
@@ -126,65 +128,67 @@ pljit::SourceCodeReference pljit::SourceCodeManagement::iterator::codeReference(
     return { management, {begin, end}};
 }
 //---------------------------------------------------------------------------
-pljit::SourceCodeReference::SourceCodeReference()
+SourceCodeReference::SourceCodeReference()
     : management(nullptr), string_content() {}
 // TODO ensure we handle empty references properly!
 
-pljit::SourceCodeReference::SourceCodeReference(const pljit::SourceCodeManagement* management, std::string_view string_content)
+SourceCodeReference::SourceCodeReference(const SourceCodeManagement* management, std::string_view string_content)
     : management(management), string_content(string_content) {
 }
 
-std::string_view pljit::SourceCodeReference::content() const {
+std::string_view SourceCodeReference::content() const {
     assert(management != nullptr);
     return string_content;
 }
 
-void pljit::SourceCodeReference::extend(int amount) {
+void SourceCodeReference::extend(int amount) {
     assert(management != nullptr);
     assert(string_content.end() + amount <= &(*management->end()));
 
     string_content = { string_content.data(), string_content.size() + amount };
 }
 
-pljit::SourceCodeError pljit::SourceCodeReference::makeError(pljit::SourceCodeManagement::ErrorType errorType, std::string_view message) const {
+SourceCodeError SourceCodeReference::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
     return { errorType, message, *this };
 }
 
-bool pljit::SourceCodeReference::operator==(const pljit::SourceCodeReference& rhs) const {
+bool SourceCodeReference::operator==(const SourceCodeReference& rhs) const {
     return management == rhs.management &&
         string_content == rhs.string_content;
 }
 //---------------------------------------------------------------------------
-pljit::SourceCodeError::SourceCodeError(pljit::SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, pljit::SourceCodeReference sourceCodeReference)
+SourceCodeError::SourceCodeError(SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference)
     : errorType(errorType), errorMessage(errorMessage), sourceCodeReference(sourceCodeReference) {}
 
-pljit::SourceCodeManagement::ErrorType pljit::SourceCodeError::type() const {
+SourceCodeManagement::ErrorType SourceCodeError::type() const {
     return errorType;
 }
 
-std::string_view pljit::SourceCodeError::message() const {
+std::string_view SourceCodeError::message() const {
     return errorMessage;
 }
 
-const pljit::SourceCodeReference& pljit::SourceCodeError::reference() const {
+const SourceCodeReference& SourceCodeError::reference() const {
     return sourceCodeReference;
 }
 
-pljit::SourceCodeError& pljit::SourceCodeError::withCause(pljit::SourceCodeError&& error_cause) {
+SourceCodeError& SourceCodeError::withCause(SourceCodeError&& error_cause) {
     causes.emplace_back(error_cause);
     return *this;
 }
 
-void pljit::SourceCodeError::printCompilerError() const {
+void SourceCodeError::printCompilerError() const {
     sourceCodeReference.management->print_error(errorType, errorMessage, sourceCodeReference);
     for (auto& cause: causes) {
         cause.printCompilerError();
     }
 }
 
-bool pljit::SourceCodeError::operator==(const pljit::SourceCodeError& rhs) const {
+bool SourceCodeError::operator==(const SourceCodeError& rhs) const {
     return errorType == rhs.errorType &&
         errorMessage == rhs.errorMessage &&
         sourceCodeReference == rhs.sourceCodeReference;
 }
+//---------------------------------------------------------------------------
+} // namespace pljit::code
 //---------------------------------------------------------------------------

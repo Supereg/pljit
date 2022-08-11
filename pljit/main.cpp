@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
 
-#include "SourceCodeManagement.hpp"
 #include "Lexer.hpp"
+#include "code/SourceCodeManagement.hpp"
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ void print(const pljit::Token& token) {
 int main() {
     std::string program = "PARAM width, height, depth;";
 
-    pljit::SourceCodeManagement management{ std::move(program) };
+    pljit::code::SourceCodeManagement management{ std::move(program) };
     pljit::Lexer lexer{management};
 
     while(true) {
@@ -35,7 +35,7 @@ int main() {
         result = lexer.consume_next();
         print(result.value());
 
-        auto error = pljit::SourceCodeError(pljit::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.value().reference());
+        auto error = pljit::code::SourceCodeError(pljit::code::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.value().reference());
         error.printCompilerError();
 
         result = lexer.consume_next();
