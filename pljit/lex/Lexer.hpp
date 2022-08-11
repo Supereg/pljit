@@ -5,53 +5,18 @@
 #ifndef PLJIT_LEXER_HPP
 #define PLJIT_LEXER_HPP
 
-#include "Result.hpp"
-#include "code/SourceCodeManagement.hpp"
+#include "../code/SourceCodeManagement.hpp"
+#include "../util/Result.hpp"
 #include <cassert>
 #include <optional>
 
 //---------------------------------------------------------------------------
-namespace pljit {
-//---------------------------------------------------------------------------
-struct Keyword {
-    static constexpr std::string_view PARAM = "PARAM";
-    static constexpr std::string_view VAR = "VAR";
-    static constexpr std::string_view CONST = "CONST";
-    static constexpr std::string_view BEGIN = "BEGIN";
-    static constexpr std::string_view END = "END";
-    static constexpr std::string_view RETURN = "RETURN";
-};
-
-struct Operator {
-    static constexpr std::string_view PLUS = "+";
-    static constexpr std::string_view MINUS = "-";
-    static constexpr std::string_view MULTIPLICATION = "*";
-    static constexpr std::string_view DIVISION = "/";
-    static constexpr std::string_view INIT = "=";
-    static constexpr std::string_view ASSIGNMENT = ":=";
-};
-
-struct Parenthesis {
-    static constexpr std::string_view ROUND_OPEN = "(";
-    static constexpr std::string_view ROUND_CLOSE = ")";
-};
-
-struct Separator {
-    static constexpr std::string_view COMMA = ",";
-    static constexpr std::string_view SEMICOLON = ";";
-    static constexpr std::string_view END_OF_PROGRAM = ".";
-};
-
-struct Whitespace {
-    static constexpr std::string_view SPACE = " ";
-    static constexpr std::string_view TAB = "\t";
-    static constexpr std::string_view NEW_LINE = "\n";
-};
+namespace pljit::lex {
 //---------------------------------------------------------------------------
 class Token {
     public:
     /// Defines the type of the token.
-    enum class TokenType {
+    enum class Type {
         /// A token which is empty (doesn't contain any characters).
         /// A `Token` with this type signals end of the program.
         EMPTY,
@@ -76,14 +41,14 @@ class Token {
         /// The Token was not extended. The character was illegal.
         ERRONEOUS_CHARACTER,
         /// The Token was not extended.
-        /// The given character either doesn't match the given {@class TokenType} or the Token is already considered complete
+        /// The given character either doesn't match the given {@class Type} or the Token is already considered complete
         /// (e.g. for single character operators).
         /// The Token should be considered complete and the character should be considered part of a new Token.
         END_OF_TOKEN,
     };
 
     private:
-    TokenType type;
+    Type type;
     code::SourceCodeReference source_code;
 
     public:
@@ -100,18 +65,18 @@ class Token {
 
     static bool isKeyword(std::string_view view);
 
-    static TokenType typeOfCharacter(char character);
+    static Type typeOfCharacter(char character);
 
-    /// Creates an empty Token. `TokenType` is set to `EMPTY` and the source code is not accessible.
+    /// Creates an empty Token. `Type` is set to `EMPTY` and the source code is not accessible.
     Token();
 
     /**
-     * Check if the {@see TokenType} of this `Token` is of type `TokenType::EMPTY`.
+     * Check if the {@see Type} of this `Token` is of type `Type::EMPTY`.
      * @return Returns `true` if the `Token` is an empty token.
      */
     bool isEmpty() const;
 
-    TokenType getType() const;
+    Type getType() const;
 
     /**
      * Get access to the source code of the `Token`.
@@ -134,12 +99,12 @@ class Token {
     std::string_view content() const;
 
     /**
-     * Shorthand version to check the {@class TokenType} and Token content of the Token.
-     * @param type The {@class TokenType}.
+     * Shorthand version to check the {@class Type} and Token content of the Token.
+     * @param type The {@class Type}.
      * @param content The string representation of the Token content.
      * @return True if both of the passed parameter matches the Token.
      */
-    bool is(TokenType token_type, std::string_view content) const;
+    bool is(Type token_type, std::string_view content) const;
 
     /**
      * Extends this Token with another character.
@@ -193,7 +158,7 @@ class Lexer {
     Result<Token> next();
 };
 //---------------------------------------------------------------------------
-} // namespace pljit
+} // namespace pljit::lex
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_LEXER_HPP

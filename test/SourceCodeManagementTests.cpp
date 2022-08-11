@@ -2,22 +2,22 @@
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 //---------------------------------------------------------------------------
-using namespace pljit;
+using namespace pljit::code;
 //---------------------------------------------------------------------------
 TEST(SourceCodeManagement, testIteratorConcept) {
-    ASSERT_TRUE(std::bidirectional_iterator<code::SourceCodeManagement::iterator>);
+    ASSERT_TRUE(std::bidirectional_iterator<SourceCodeManagement::iterator>);
 }
 
 TEST(SourceCodeManagement, testProgramStorage) {
     std::string program = "Hello World;";
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
     ASSERT_EQ(management.content(), "Hello World;");
 }
 
 TEST(SourceCodeManagement, testSourceCodeIterator) {
     std::string program = "Hello World;";
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
     auto iterator = management.begin();
     ASSERT_EQ(*iterator, 'H');
@@ -33,22 +33,22 @@ TEST(SourceCodeManagement, testSourceCodeIterator) {
     auto reference = iterator.codeReference();
     ASSERT_EQ(reference.content(), "H");
 
-    ASSERT_NE(iterator, code::SourceCodeManagement::iterator());
-    ASSERT_EQ(code::SourceCodeManagement::iterator(), code::SourceCodeManagement::iterator());
+    ASSERT_NE(iterator, SourceCodeManagement::iterator());
+    ASSERT_EQ(SourceCodeManagement::iterator(), SourceCodeManagement::iterator());
 }
 
 TEST(SourceCodeManagement, testSourceCodeError) {
     std::string program = "Hello world";
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
     auto reference = management.begin().codeReference();
     reference.extend(10);
 
-    code::SourceCodeError error = reference.makeError(code::SourceCodeManagement::ErrorType::NOTE, "some error!");
+    SourceCodeError error = reference.makeError(SourceCodeManagement::ErrorType::NOTE, "some error!");
 
     ASSERT_EQ(error.reference().content(), "Hello world");
     ASSERT_EQ(error.message(), "some error!");
-    ASSERT_EQ(error.type(), code::SourceCodeManagement::ErrorType::NOTE);
+    ASSERT_EQ(error.type(), SourceCodeManagement::ErrorType::NOTE);
 
     CaptureCOut capture;
 
@@ -60,10 +60,10 @@ TEST(SourceCodeManagement, testSourceCodeError) {
 
 TEST(SourceCodeManagement, testEmptySourceCode) {
     std::string program; // empty string
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
-    code::SourceCodeError error{
-        code::SourceCodeManagement::ErrorType::ERROR,
+    SourceCodeError error{
+        SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         management.begin().codeReference()
     };
@@ -78,10 +78,10 @@ TEST(SourceCodeManagement, testEmptySourceCode) {
 
 TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
     std::string program = "some program\nnew"; // empty string
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
-    code::SourceCodeError error{
-        code::SourceCodeManagement::ErrorType::ERROR,
+    SourceCodeError error{
+        SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         management.end().codeReference()
     };
@@ -96,10 +96,10 @@ TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
 
 TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
     std::string program = "some program\n"; // empty string
-    code::SourceCodeManagement management{ std::move(program) };
+    SourceCodeManagement management{ std::move(program) };
 
-    code::SourceCodeError error{
-        code::SourceCodeManagement::ErrorType::ERROR,
+    SourceCodeError error{
+        SourceCodeManagement::ErrorType::ERROR,
         "It's an error!",
         (--management.end()).codeReference()
     };

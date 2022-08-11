@@ -5,7 +5,7 @@
 #ifndef PLJIT_RESULT_HPP
 #define PLJIT_RESULT_HPP
 
-#include "code/SourceCodeManagement.hpp"
+#include "../code/SourceCodeManagement.hpp"
 #include <cassert>
 #include <concepts>
 #include <optional>

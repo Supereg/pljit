@@ -5,8 +5,8 @@
 #ifndef PLJIT_ASTDOTVISITOR_HPP
 #define PLJIT_ASTDOTVISITOR_HPP
 
-#include "ASTVisitor.hpp"
-#include "GenericDOTVisitor.hpp"
+#include "./ASTVisitor.hpp"
+#include "../util/GenericDOTVisitor.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {

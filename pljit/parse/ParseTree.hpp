@@ -1,29 +1,27 @@
 //
-// Created by Andreas Bauer on 28.07.22.
+// Created by Andreas Bauer on 11.08.22.
 //
 
-#ifndef PLJIT_PARSER_HPP
-#define PLJIT_PARSER_HPP
+#ifndef PLJIT_PARSETREE_HPP
+#define PLJIT_PARSETREE_HPP
 
-#include "Lexer.hpp"
-#include "Result.hpp"
-#include "code/SourceCodeManagement.hpp"
+#include "../code/SourceCodeManagement.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
-#include <gtest/gtest_prod.h>
 
-namespace pljit {
+//---------------------------------------------------------------------------
+namespace pljit::parse {
+//---------------------------------------------------------------------------
 class Parser;
-
-// TODO how to organize namespaces??
-namespace ParseTree { // TODO add ability to print to graph (=PrintVisitor?)!
+//---------------------------------------------------------------------------
+namespace ParseTree {
 //---------------------------------------------------------------------------
 class ParseTreeVisitor;
 class AdditiveExpression;
 //---------------------------------------------------------------------------
 class Symbol {
-    friend class pljit::Parser;
+    friend class pljit::parse::Parser;
 
     protected:
     code::SourceCodeReference src_reference; // TODO getter checks for nullptr!!!
@@ -37,8 +35,8 @@ class Symbol {
 
     virtual void accept(ParseTreeVisitor& visitor) const = 0;
 };
-
-class GenericTerminal: public Symbol {
+//---------------------------------------------------------------------------
+class GenericTerminal : public Symbol {
     public:
     GenericTerminal();
     explicit GenericTerminal(code::SourceCodeReference src_reference);
@@ -46,17 +44,17 @@ class GenericTerminal: public Symbol {
     std::string_view value() const;
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class Identifier: public Symbol {
+//---------------------------------------------------------------------------
+class Identifier : public Symbol {
     public:
     Identifier();
 
     std::string_view value() const;
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class Literal: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class Literal : public Symbol {
+    friend class pljit::parse::Parser;
     long long literalValue; // 64-bit integer
 
     public:
@@ -68,9 +66,9 @@ class Literal: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class PrimaryExpression: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class PrimaryExpression : public Symbol {
+    friend class pljit::parse::Parser;
 
     public:
     /// Describes the content type of the `symbols` property.
@@ -99,9 +97,9 @@ class PrimaryExpression: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class UnaryExpression: public Symbol {
-    friend class pljit::Parser; // TODO can we avoid all the friend definitions in this file?
+//---------------------------------------------------------------------------
+class UnaryExpression : public Symbol {
+    friend class pljit::parse::Parser; // TODO can we avoid all the friend definitions in this file?
 
     std::optional<GenericTerminal> unaryOperator;
     PrimaryExpression primaryExpression;
@@ -114,10 +112,9 @@ class UnaryExpression: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-
-class MultiplicativeExpression: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class MultiplicativeExpression : public Symbol {
+    friend class pljit::parse::Parser;
 
     UnaryExpression expression;
     std::vector<std::tuple<GenericTerminal, MultiplicativeExpression>> optionalOperand;
@@ -130,9 +127,9 @@ class MultiplicativeExpression: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class AdditiveExpression: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class AdditiveExpression : public Symbol {
+    friend class pljit::parse::Parser;
 
     MultiplicativeExpression expression;
 
@@ -146,9 +143,9 @@ class AdditiveExpression: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class AssignmentExpression: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class AssignmentExpression : public Symbol {
+    friend class pljit::parse::Parser;
 
     Identifier identifier;
     GenericTerminal assignmentOperator;
@@ -163,9 +160,9 @@ class AssignmentExpression: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class Statement: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class Statement : public Symbol {
+    friend class pljit::parse::Parser;
 
     public:
     /// Describes the content type of the `symbols` property.
@@ -201,9 +198,9 @@ class Statement: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class StatementList: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class StatementList : public Symbol {
+    friend class pljit::parse::Parser;
 
     Statement statement;
     std::vector<std::tuple<GenericTerminal, Statement>> additionalStatements;
@@ -216,9 +213,9 @@ class StatementList: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class CompoundStatement: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class CompoundStatement : public Symbol {
+    friend class pljit::parse::Parser;
 
     GenericTerminal beginKeyword;
     StatementList statementList;
@@ -233,9 +230,9 @@ class CompoundStatement: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class InitDeclarator: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class InitDeclarator : public Symbol {
+    friend class pljit::parse::Parser;
 
     Identifier identifier;
     GenericTerminal initOperator;
@@ -250,9 +247,9 @@ class InitDeclarator: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class InitDeclaratorList: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class InitDeclaratorList : public Symbol {
+    friend class pljit::parse::Parser;
 
     InitDeclarator initDeclarator;
     std::vector<std::tuple<GenericTerminal, InitDeclarator>> additionalInitDeclarators;
@@ -265,9 +262,9 @@ class InitDeclaratorList: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class DeclaratorList: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class DeclaratorList : public Symbol {
+    friend class pljit::parse::Parser;
 
     Identifier identifier;
     std::vector<std::tuple<GenericTerminal, Identifier>> additionalIdentifiers;
@@ -280,9 +277,9 @@ class DeclaratorList: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class ConstantDeclarations: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class ConstantDeclarations : public Symbol {
+    friend class pljit::parse::Parser;
 
     GenericTerminal constKeyword;
     InitDeclaratorList initDeclaratorList;
@@ -297,9 +294,9 @@ class ConstantDeclarations: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class VariableDeclarations: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class VariableDeclarations : public Symbol {
+    friend class pljit::parse::Parser;
 
     GenericTerminal varKeyword;
     DeclaratorList declaratorList;
@@ -314,9 +311,9 @@ class VariableDeclarations: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class ParameterDeclarations: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class ParameterDeclarations : public Symbol {
+    friend class pljit::parse::Parser;
 
     GenericTerminal paramKeyword;
     DeclaratorList declaratorList;
@@ -331,9 +328,9 @@ class ParameterDeclarations: public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-
-class FunctionDefinition: public Symbol {
-    friend class pljit::Parser;
+//---------------------------------------------------------------------------
+class FunctionDefinition : public Symbol {
+    friend class pljit::parse::Parser;
 
     std::optional<ParameterDeclarations> parameterDeclarations;
     std::optional<VariableDeclarations> variableDeclarations;
@@ -354,46 +351,7 @@ class FunctionDefinition: public Symbol {
 //---------------------------------------------------------------------------
 } // namespace ParseTree
 //---------------------------------------------------------------------------
-class Parser { // TODO "RecursiveDescentParser"
-    Lexer* lexer;
-
-    public:
-    explicit Parser(Lexer& lexer); // TODO manage lexer creation itself?
-
-    Result<ParseTree::FunctionDefinition> parse_program();
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseFunctionDefinition(ParseTree::FunctionDefinition& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseParameterDeclarations(std::optional<ParseTree::ParameterDeclarations>& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseVariableDeclarations(std::optional<ParseTree::VariableDeclarations>& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseConstantDeclarations(std::optional<ParseTree::ConstantDeclarations>& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseDeclaratorList(ParseTree::DeclaratorList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclaratorList(ParseTree::InitDeclaratorList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclarator(ParseTree::InitDeclarator& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseCompoundStatement(ParseTree::CompoundStatement& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseStatementList(ParseTree::StatementList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseStatement(ParseTree::Statement& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseAssignmentExpression(ParseTree::AssignmentExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseAdditiveExpression(ParseTree::AdditiveExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseMultiplicativeExpression(ParseTree::MultiplicativeExpression& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseUnaryExpression(ParseTree::UnaryExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parsePrimaryExpression(ParseTree::PrimaryExpression& destination);
-
-    [[nodiscard]] std::optional<code::SourceCodeError> parseIdentifier(ParseTree::Identifier& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseLiteral(ParseTree::Literal& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseGenericTerminal(
-        ParseTree::GenericTerminal& destination,
-        Token::TokenType expected_type,
-        std::string_view expected_content,
-        std::string_view potential_error_message
-    );
-};
-//---------------------------------------------------------------------------
-} // namespace pljit
+} // namespace pljit::parse
 //---------------------------------------------------------------------------
 
-#endif //PLJIT_PARSER_HPP
+#endif //PLJIT_PARSETREE_HPP

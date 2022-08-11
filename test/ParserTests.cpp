@@ -1,7 +1,8 @@
-#include "pljit/Lexer.hpp"
-#include "pljit/ParseTreeDOTVisitor.hpp"
-#include "pljit/Parser.hpp"
 #include "pljit/code/SourceCodeManagement.hpp"
+#include "pljit/lang.hpp"
+#include "pljit/lex/Lexer.hpp"
+#include "pljit/parse/ParseTreeDOTVisitor.hpp"
+#include "pljit/parse/Parser.hpp"
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 //---------------------------------------------------------------------------
@@ -9,21 +10,21 @@ namespace pljit {
 //---------------------------------------------------------------------------
 TEST(Parser, testGenericTerminal) {
     code::SourceCodeManagement management{"BEGIN"};
-    Lexer lexer{management};
-    Parser parser{lexer};
+    lex::Lexer lexer{management};
+    parse::Parser parser{lexer};
 
-    ParseTree::GenericTerminal terminal;
-    ASSERT_FALSE(parser.parseGenericTerminal(terminal, Token::TokenType::KEYWORD, Keyword::BEGIN, "expected BEGIN").has_value());
+    parse::ParseTree::GenericTerminal terminal;
+    ASSERT_FALSE(parser.parseGenericTerminal(terminal, lex::Token::Type::KEYWORD, Keyword::BEGIN, "expected BEGIN").has_value());
     ASSERT_EQ(terminal.value(), "BEGIN");
     ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Parser, testLiteral) {
     code::SourceCodeManagement management{"02731"};
-    Lexer lexer{management};
-    Parser parser{lexer};
+    lex::Lexer lexer{management};
+    parse::Parser parser{lexer};
 
-    ParseTree::Literal literal;
+    parse::ParseTree::Literal literal;
     ASSERT_FALSE(parser.parseLiteral(literal).has_value());
     ASSERT_EQ(literal.value(), 2731);
     ASSERT_TRUE(lexer.endOfStream());
@@ -31,10 +32,10 @@ TEST(Parser, testLiteral) {
 
 TEST(Parser, testIdentifier) {
     code::SourceCodeManagement management{"Program"};
-    Lexer lexer{management};
-    Parser parser{lexer};
+    lex::Lexer lexer{management};
+    parse::Parser parser{lexer};
 
-    ParseTree::Identifier identifier;
+    parse::ParseTree::Identifier identifier;
     ASSERT_FALSE(parser.parseIdentifier(identifier).has_value());
     ASSERT_EQ(identifier.value(), "Program");
     ASSERT_TRUE(lexer.endOfStream());
@@ -43,30 +44,30 @@ TEST(Parser, testIdentifier) {
 TEST(Parser, testPrimaryExpression) {
     {
         code::SourceCodeManagement management{"width"};
-        Lexer lexer{management};
-        Parser parser{lexer};
+        lex::Lexer lexer{management};
+        parse::Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        parse::ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asIdentifier().value(), "width");
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
         code::SourceCodeManagement management{"12"};
-        Lexer lexer{management};
-        Parser parser{lexer};
+        lex::Lexer lexer{management};
+        parse::Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        parse::ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asLiteral().value(), 12);
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
         code::SourceCodeManagement management{"(12)"};
-        Lexer lexer{management};
-        Parser parser{lexer};
+        lex::Lexer lexer{management};
+        parse::Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        parse::ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         auto [openParenthesis, additiveExpression, closeParenthesis] = expression.asBracketedExpression();
         ASSERT_EQ(openParenthesis.value(), "(");
@@ -85,11 +86,11 @@ TEST(Parser, testExampleProgram) {
                                       "\tvolume := width * height * depth;\n"
                                       "\tRETURN density * volume\n"
                                       "END." };
-    Lexer lexer{ management };
-    Parser parser{lexer};
+    lex::Lexer lexer{ management };
+    parse::Parser parser{lexer};
 
     auto program = parser.parse_program();
-    ParseTree::DOTVisitor visitor;
+    parse::ParseTree::DOTVisitor visitor;
 
     CaptureCOut capture;
 

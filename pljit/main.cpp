@@ -1,15 +1,16 @@
 #include <iostream>
 #include <string>
 
-#include "Lexer.hpp"
-#include "code/SourceCodeManagement.hpp"
+#include "./code/SourceCodeManagement.hpp"
+#include "./lex/Lexer.hpp"
+
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
 
-void print(const pljit::Token& token) {
+void print(const pljit::lex::Token& token) {
     switch (token.getType()) {
-        case pljit::Token::TokenType::EMPTY:
+        case pljit::lex::Token::Type::EMPTY:
             cout << "EMPTY" << endl;
             break;
         default:
@@ -17,6 +18,9 @@ void print(const pljit::Token& token) {
     }
 }
 
+// TODO introduce additional target for executable!
+// TODO -fno-rtti (no run time type information)
+// TODO optimizations (e.g. with division by zero) -> ensure that the error is still there
 // TODO introduce multiple namespaces for different components(?) + top level namespace!!
 //  e.g. parsing in e.g. separate namespace
 // TODO separate into library and executable (CLI/frontend)
@@ -26,10 +30,10 @@ int main() {
     std::string program = "PARAM width, height, depth;";
 
     pljit::code::SourceCodeManagement management{ std::move(program) };
-    pljit::Lexer lexer{management};
+    pljit::lex::Lexer lexer{management};
 
     while(true) {
-        pljit::Result<pljit::Token> result = lexer.consume_next();
+        pljit::Result<pljit::lex::Token> result = lexer.consume_next();
         print(result.value());
 
         result = lexer.consume_next();

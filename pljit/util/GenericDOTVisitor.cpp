@@ -2,11 +2,11 @@
 // Created by Andreas Bauer on 03.08.22.
 //
 
-#include "GenericDOTVisitor.hpp"
+#include "./GenericDOTVisitor.hpp"
 #include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit {
+namespace pljit { // TODO linkage local?
 //---------------------------------------------------------------------------
 using std::cout;
 using std::endl;

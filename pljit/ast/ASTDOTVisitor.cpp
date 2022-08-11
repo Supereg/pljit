@@ -2,8 +2,8 @@
 // Created by Andreas Bauer on 03.08.22.
 //
 
-#include "ASTDOTVisitor.hpp"
-#include "AST.hpp"
+#include "./ASTDOTVisitor.hpp"
+#include "./AST.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {

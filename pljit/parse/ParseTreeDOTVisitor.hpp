@@ -4,11 +4,11 @@
 
 #ifndef PLJIT_PARSETREEDOTVISITOR_HPP
 #define PLJIT_PARSETREEDOTVISITOR_HPP
-#include "ParseTreeVisitor.hpp"
-#include "GenericDOTVisitor.hpp"
+#include "./ParseTreeVisitor.hpp"
+#include "pljit/util/GenericDOTVisitor.hpp"
 
 //---------------------------------------------------------------------------
-namespace pljit::ParseTree {
+namespace pljit::parse::ParseTree {
 //---------------------------------------------------------------------------
 class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     public:
@@ -35,7 +35,7 @@ class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     void visit(const FunctionDefinition& node) override;
 };
 //---------------------------------------------------------------------------
-} // namespace pljit::ParseTree
+} // namespace pljit::parse::ParseTree
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_PARSETREEDOTVISITOR_HPP

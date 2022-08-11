@@ -4,7 +4,9 @@
 
 #ifndef PLJIT_SOURCECODEMANAGEMENT_H
 #define PLJIT_SOURCECODEMANAGEMENT_H
+
 #include <string>
+#include <string_view>
 #include <vector>
 
 //---------------------------------------------------------------------------
@@ -91,8 +93,6 @@ class SourceCodeReference {
     void extend(int amount);
 
     SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
-
-    SourceCodeError& withCause(SourceCodeError&& cause);
 
     bool operator==(const SourceCodeReference& rhs) const;
 }; //---------------------------------------------------------------------------

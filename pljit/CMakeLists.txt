@@ -2,15 +2,15 @@ set(PLJIT_SOURCES
     # add your source files here
     main.cpp
     code/SourceCodeManagement.cpp
-    Lexer.cpp
-    Parser.cpp
-    ParseTreeDOTVisitor.cpp
-    AST.cpp
-    ASTBuilder.cpp
-    SymbolTable.cpp
-    ASTDOTVisitor.cpp
-    GenericDOTVisitor.cpp
-)
+    lex/Lexer.cpp
+    parse/Parser.cpp
+    parse/ParseTreeDOTVisitor.cpp
+    ast/AST.cpp
+    ast/ASTBuilder.cpp
+    ast/SymbolTable.cpp
+    ast/ASTDOTVisitor.cpp
+    util/GenericDOTVisitor.cpp
+    parse/ParseTree.cpp)
 
 add_library(pljit_core ${PLJIT_SOURCES})
 target_include_directories(pljit_core PUBLIC ${CMAKE_SOURCE_DIR})

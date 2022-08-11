@@ -2,8 +2,7 @@
 // Created by Andreas Bauer on 30.07.22.
 //
 
-#include "AST.hpp"
-
+#include "./AST.hpp"
 #include <utility>
 
 //---------------------------------------------------------------------------

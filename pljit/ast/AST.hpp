@@ -4,8 +4,8 @@
 
 #ifndef PLJIT_AST_HPP
 #define PLJIT_AST_HPP
-#include "SymbolTable.hpp"
-#include "ASTVisitor.hpp"
+#include "./SymbolTable.hpp"
+#include "./ASTVisitor.hpp"
 #include <vector>
 #include <memory>
 #include <optional>

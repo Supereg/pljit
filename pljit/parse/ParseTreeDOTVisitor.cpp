@@ -2,12 +2,12 @@
 // Created by Andreas Bauer on 30.07.22.
 //
 
-#include "ParseTreeDOTVisitor.hpp"
-#include "Parser.hpp" // TODO parse tree implementation header!
+#include "./ParseTreeDOTVisitor.hpp"
+#include "./ParseTree.hpp"
 #include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit::ParseTree {
+namespace pljit::parse::ParseTree {
 //---------------------------------------------------------------------------
 DOTVisitor::DOTVisitor() = default;
 
@@ -284,5 +284,5 @@ void DOTVisitor::visit(const GenericTerminal& node) {
     printTerminalNode(node.value());
 }
 //---------------------------------------------------------------------------
-} // namespace pljit::ParseTree
+} // namespace pljit::parse::ParseTree
 //---------------------------------------------------------------------------

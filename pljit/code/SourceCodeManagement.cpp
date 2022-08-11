@@ -2,12 +2,12 @@
 // Created by Andreas Bauer on 13.07.22.
 //
 
-#include "SourceCodeManagement.hpp"
+#include "./SourceCodeManagement.hpp"
 #include <cassert>
 #include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit::code {
+namespace pljit::code { // TODO maybe used this as a separate library?
 //---------------------------------------------------------------------------
 SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
     : source_code(source_code),

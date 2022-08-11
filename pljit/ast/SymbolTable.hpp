@@ -5,9 +5,9 @@
 #ifndef PLJIT_SYMBOLTABLE_HPP
 #define PLJIT_SYMBOLTABLE_HPP
 
-#include "Parser.hpp" // TODO parse tree!
-#include "Result.hpp"
-#include "code/SourceCodeManagement.hpp"
+#include "../code/SourceCodeManagement.hpp"
+#include "../parse/ParseTree.hpp"
+#include "../util/Result.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -53,9 +53,9 @@ class SymbolTable {
     std::optional<Symbol> retrieveSymbol(symbol_id symbolId);
     std::optional<Symbol> retrieveSymbol(std::string_view identifier_name);
 
-    Result<symbol_id> declareIdentifier(const ParseTree::Identifier& identifier, SymbolType symbolType);
-    Result<symbol_id> useIdentifier(const ParseTree::Identifier& identifier);
-    Result<symbol_id> useAsAssignmentTarget(const ParseTree::Identifier& identifier);
+    Result<symbol_id> declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType);
+    Result<symbol_id> useIdentifier(const parse::ParseTree::Identifier& identifier);
+    Result<symbol_id> useAsAssignmentTarget(const parse::ParseTree::Identifier& identifier);
 
 };
 //---------------------------------------------------------------------------

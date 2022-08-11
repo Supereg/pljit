@@ -3,7 +3,8 @@
 //
 
 #include "SymbolTable.hpp"
-#include "code/SourceCodeManagement.hpp"
+#include "../parse/ParseTree.hpp"
+#include "pljit/code/SourceCodeManagement.hpp"
 #include <cassert>
 
 //---------------------------------------------------------------------------
@@ -30,7 +31,7 @@ std::optional<SymbolTable::Symbol> SymbolTable::retrieveSymbol(std::string_view 
     return { retrieveSymbol(symbolLookup[identifier_name]) };
 }
 
-Result<symbol_id> SymbolTable::declareIdentifier(const ParseTree::Identifier& identifier, SymbolType symbolType) {
+Result<symbol_id> SymbolTable::declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (existingSymbol) {
         return identifier.reference()
@@ -51,7 +52,7 @@ Result<symbol_id> SymbolTable::declareIdentifier(const ParseTree::Identifier& id
     return id;
 }
 
-Result<symbol_id> SymbolTable::useIdentifier(const ParseTree::Identifier& identifier) {
+Result<symbol_id> SymbolTable::useIdentifier(const parse::ParseTree::Identifier& identifier) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
@@ -66,7 +67,7 @@ Result<symbol_id> SymbolTable::useIdentifier(const ParseTree::Identifier& identi
     return existingSymbol->id();
 }
 
-Result<symbol_id> SymbolTable::useAsAssignmentTarget(const ParseTree::Identifier& identifier) {
+Result<symbol_id> SymbolTable::useAsAssignmentTarget(const parse::ParseTree::Identifier& identifier) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
