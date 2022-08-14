@@ -3,14 +3,18 @@
 //
 
 #include "SymbolTable.hpp"
-#include "../parse/ParseTree.hpp"
 #include "pljit/code/SourceCodeManagement.hpp"
+#include "pljit/parse/ParseTree.hpp"
 #include <cassert>
 
 //---------------------------------------------------------------------------
-namespace pljit::ast {
+namespace pljit {
 //---------------------------------------------------------------------------
 SymbolTable::SymbolTable() : symbols(), symbolLookup() {}
+
+std::size_t SymbolTable::size() const {
+    return symbols.size();
+}
 
 std::optional<SymbolTable::Symbol> SymbolTable::retrieveSymbol(symbol_id symbolId) {
     assert(symbolId > 0 && "Encountered illegal symbol id!");
@@ -29,6 +33,12 @@ std::optional<SymbolTable::Symbol> SymbolTable::retrieveSymbol(std::string_view 
     }
 
     return { retrieveSymbol(symbolLookup[identifier_name]) };
+}
+
+SymbolTable::Symbol& SymbolTable::operator[](symbol_id symbolId) {
+    assert(symbolId > 0 && "Encountered illegal symbol id!");
+    std::size_t index = symbolId - 1;
+    return symbols[index];
 }
 
 Result<symbol_id> SymbolTable::declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType) {
@@ -79,6 +89,8 @@ Result<symbol_id> SymbolTable::useAsAssignmentTarget(const parse::ParseTree::Ide
             .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Can't assign to constant!");
     }
 
+    operator[](existingSymbol->id()).markInitialized();
+
     return existingSymbol->id();
 }
 //---------------------------------------------------------------------------
@@ -100,6 +112,10 @@ bool SymbolTable::Symbol::isConstant() const {
 bool SymbolTable::Symbol::isInitialized() const {
     return initialized;
 }
+
+void SymbolTable::Symbol::markInitialized() {
+    initialized = true;
+}
 //---------------------------------------------------------------------------
-} // namespace pljit::ast
+} // namespace pljit
 //---------------------------------------------------------------------------

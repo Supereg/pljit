@@ -7,10 +7,12 @@ set(PLJIT_SOURCES
     parse/ParseTreeDOTVisitor.cpp
     ast/AST.cpp
     ast/ASTBuilder.cpp
-    ast/SymbolTable.cpp
+    SymbolTable.cpp
     ast/ASTDOTVisitor.cpp
     util/GenericDOTVisitor.cpp
-    parse/ParseTree.cpp)
+    parse/ParseTree.cpp
+    pljit.cpp
+    EvaluationContext.cpp optimizations/DeadCodeElimination.cpp optimizations/ConstantPropagation.cpp optimizations/ConstantPropagation.hpp)
 
 add_library(pljit_core ${PLJIT_SOURCES})
 target_include_directories(pljit_core PUBLIC ${CMAKE_SOURCE_DIR})

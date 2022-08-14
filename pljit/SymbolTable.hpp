@@ -5,21 +5,22 @@
 #ifndef PLJIT_SYMBOLTABLE_HPP
 #define PLJIT_SYMBOLTABLE_HPP
 
-#include "../code/SourceCodeManagement.hpp"
-#include "../parse/ParseTree.hpp"
-#include "../util/Result.hpp"
+#include "./symbol_id.hpp"
+#include "pljit/code/SourceCodeManagement.hpp"
+#include "pljit/parse/ParseTree.hpp"
+#include "pljit/util/Result.hpp"
 #include <unordered_map>
 #include <vector>
 
 //---------------------------------------------------------------------------
-namespace pljit::ast {
-//---------------------------------------------------------------------------
-using symbol_id = std::size_t;
+namespace pljit {
 //---------------------------------------------------------------------------
 class SymbolTable {
     public:
 
     class Symbol {
+        friend class SymbolTable;
+
         private:
         code::SourceCodeReference src_reference;
         symbol_id symbolId;
@@ -34,6 +35,9 @@ class SymbolTable {
         symbol_id id() const;
         bool isConstant() const;
         bool isInitialized() const;
+
+        private:
+        void markInitialized();
     };
 
     enum class SymbolType {
@@ -49,17 +53,18 @@ class SymbolTable {
     public:
     SymbolTable();
 
-    // TODO get a reference to mark something initialized now! (or even mark it constant?)
+    std::size_t size() const;
+
     std::optional<Symbol> retrieveSymbol(symbol_id symbolId);
     std::optional<Symbol> retrieveSymbol(std::string_view identifier_name);
+    Symbol& operator[](symbol_id symbolId);
 
     Result<symbol_id> declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType);
     Result<symbol_id> useIdentifier(const parse::ParseTree::Identifier& identifier);
     Result<symbol_id> useAsAssignmentTarget(const parse::ParseTree::Identifier& identifier);
-
 };
 //---------------------------------------------------------------------------
-} // namespace pljit::ast
+} // namespace pljit
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_SYMBOLTABLE_HPP

@@ -4,11 +4,13 @@
 
 #ifndef PLJIT_AST_HPP
 #define PLJIT_AST_HPP
-#include "./SymbolTable.hpp"
+
 #include "./ASTVisitor.hpp"
-#include <vector>
+#include "pljit/SymbolTable.hpp"
+#include "pljit/EvaluationContext.hpp"
 #include <memory>
 #include <optional>
+#include <vector>
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {
@@ -50,7 +52,10 @@ class Node {
 };
 
 
-class Expression: public Node {};
+class Expression: public Node {
+    public:
+    virtual Result<long long> evaluate(EvaluationContext& context) const = 0;
+};
 
 class Literal: public Expression {
     long long literal_value;
@@ -59,8 +64,9 @@ class Literal: public Expression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 
-    long long int value() const;
+    long long value() const;
 };
 
 class Variable: public Expression {
@@ -72,6 +78,7 @@ class Variable: public Expression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 
     symbol_id getSymbolId() const;
     const std::string_view& getName() const;
@@ -85,6 +92,7 @@ class UnaryExpression: public Expression {
     explicit UnaryExpression(std::unique_ptr<Expression> child);
 
     const Expression& getChild() const;
+    std::unique_ptr<Expression>& getChildPtr();
 };
 
 class BinaryExpression: public Expression {
@@ -97,6 +105,9 @@ class BinaryExpression: public Expression {
 
     const Expression& getLeft() const;
     const Expression& getRight() const;
+
+    std::unique_ptr<Expression>& getLeftPtr();
+    std::unique_ptr<Expression>& getRightPtr();
 };
 
 class UnaryPlus: public UnaryExpression {
@@ -105,6 +116,7 @@ class UnaryPlus: public UnaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class UnaryMinus: public UnaryExpression {
@@ -113,6 +125,7 @@ class UnaryMinus: public UnaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Add: public BinaryExpression {
@@ -121,6 +134,7 @@ class Add: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Subtract: public BinaryExpression {
@@ -129,6 +143,7 @@ class Subtract: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Multiply: public BinaryExpression {
@@ -137,14 +152,17 @@ class Multiply: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Divide: public BinaryExpression {
+    code::SourceCodeReference operatorSymbol;
     public:
-    Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
+    Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild, code::SourceCodeReference operatorSymbol);
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    Result<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Statement: public Node {
@@ -155,6 +173,10 @@ class Statement: public Node {
     explicit Statement(std::unique_ptr<Expression> expression);
 
     const Expression& getExpression() const;
+    std::unique_ptr<Expression>& getExpressionPtr();
+
+
+    [[nodiscard]] virtual std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const = 0;
 };
 
 class AssignmentStatement: public Statement {
@@ -165,6 +187,7 @@ class AssignmentStatement: public Statement {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const override;
 
     const Variable& getVariable() const;
 };
@@ -175,6 +198,7 @@ class ReturnStatement: public Statement {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const override;
 };
 
 class Declaration: public Node {
@@ -188,12 +212,15 @@ class Declaration: public Node {
 };
 
 class ParamDeclaration: public Declaration {
+    code::SourceCodeReference paramKeyword;
+
     public:
     ParamDeclaration();
-    explicit ParamDeclaration(std::vector<Variable> declaredIdentifiers);
+    explicit ParamDeclaration(code::SourceCodeReference paramKeyword, std::vector<Variable> declaredIdentifiers);
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context, std::vector<long long> arguments) const;
 };
 
 class VarDeclaration: public Declaration {
@@ -213,6 +240,7 @@ class ConstDeclaration: public Declaration {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    void evaluate(EvaluationContext& context) const;
 
     std::vector<std::tuple<const Variable&, const Literal&>> getConstDeclarations() const;
 };
@@ -227,16 +255,28 @@ class Function: public Node {
 
     std::vector<std::unique_ptr<Statement>> statements;
 
+    code::SourceCodeReference begin_reference;
+    std::size_t total_symbols;
+
     public:
     Function();
 
+    // Move Construction
+    Function(Function&& other) noexcept = default;
+    // Move Assignment
+    Function& operator=(Function&& other) noexcept = default;
+
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
+    [[nodiscard]] Result<long long> evaluate(const std::vector<long long>& arguments) const;
 
     const std::optional<ParamDeclaration>& getParamDeclaration() const;
     const std::optional<VarDeclaration>& getVarDeclaration() const;
     const std::optional<ConstDeclaration>& getConstDeclaration() const;
     const std::vector<std::unique_ptr<Statement>>& getStatements() const;
+    std::vector<std::unique_ptr<Statement>>& getStatements();
+
+    std::size_t symbol_count() const;
 };
 //---------------------------------------------------------------------------
 } // namespace pljit::ast

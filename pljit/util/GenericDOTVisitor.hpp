@@ -17,6 +17,8 @@ class GenericDOTVisitor {
     GenericDOTVisitor();
     virtual ~GenericDOTVisitor();
 
+    void reset();
+
     void printGraphHeader() const;
     void printNode(std::string_view name) const;
     void printTerminalNode(std::string_view content) const;

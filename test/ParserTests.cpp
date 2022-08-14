@@ -5,37 +5,41 @@
 #include "pljit/parse/Parser.hpp"
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
+
 //---------------------------------------------------------------------------
-namespace pljit {
+using namespace pljit;
+using namespace pljit::code;
+using namespace pljit::parse;
+using namespace pljit::lex;
 //---------------------------------------------------------------------------
 TEST(Parser, testGenericTerminal) {
-    code::SourceCodeManagement management{"BEGIN"};
-    lex::Lexer lexer{management};
-    parse::Parser parser{lexer};
+    SourceCodeManagement management{"BEGIN"};
+    Lexer lexer{management};
+    Parser parser{lexer};
 
-    parse::ParseTree::GenericTerminal terminal;
-    ASSERT_FALSE(parser.parseGenericTerminal(terminal, lex::Token::Type::KEYWORD, Keyword::BEGIN, "expected BEGIN").has_value());
+    ParseTree::GenericTerminal terminal;
+    ASSERT_FALSE(parser.parseGenericTerminal(terminal, Token::Type::KEYWORD, Keyword::BEGIN, "expected BEGIN").has_value());
     ASSERT_EQ(terminal.value(), "BEGIN");
     ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Parser, testLiteral) {
-    code::SourceCodeManagement management{"02731"};
-    lex::Lexer lexer{management};
-    parse::Parser parser{lexer};
+    SourceCodeManagement management{"02731"};
+    Lexer lexer{management};
+    Parser parser{lexer};
 
-    parse::ParseTree::Literal literal;
+    ParseTree::Literal literal;
     ASSERT_FALSE(parser.parseLiteral(literal).has_value());
     ASSERT_EQ(literal.value(), 2731);
     ASSERT_TRUE(lexer.endOfStream());
 }
 
 TEST(Parser, testIdentifier) {
-    code::SourceCodeManagement management{"Program"};
-    lex::Lexer lexer{management};
-    parse::Parser parser{lexer};
+    SourceCodeManagement management{"Program"};
+    Lexer lexer{management};
+    Parser parser{lexer};
 
-    parse::ParseTree::Identifier identifier;
+    ParseTree::Identifier identifier;
     ASSERT_FALSE(parser.parseIdentifier(identifier).has_value());
     ASSERT_EQ(identifier.value(), "Program");
     ASSERT_TRUE(lexer.endOfStream());
@@ -43,31 +47,31 @@ TEST(Parser, testIdentifier) {
 
 TEST(Parser, testPrimaryExpression) {
     {
-        code::SourceCodeManagement management{"width"};
-        lex::Lexer lexer{management};
-        parse::Parser parser{lexer};
+        SourceCodeManagement management{"width"};
+        Lexer lexer{management};
+        Parser parser{lexer};
 
-        parse::ParseTree::PrimaryExpression expression;
+        ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asIdentifier().value(), "width");
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
-        code::SourceCodeManagement management{"12"};
-        lex::Lexer lexer{management};
-        parse::Parser parser{lexer};
+        SourceCodeManagement management{"12"};
+        Lexer lexer{management};
+        Parser parser{lexer};
 
-        parse::ParseTree::PrimaryExpression expression;
+        ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asLiteral().value(), 12);
         ASSERT_TRUE(lexer.endOfStream());
     }
     {
-        code::SourceCodeManagement management{"(12)"};
-        lex::Lexer lexer{management};
-        parse::Parser parser{lexer};
+        SourceCodeManagement management{"(12)"};
+        Lexer lexer{management};
+        Parser parser{lexer};
 
-        parse::ParseTree::PrimaryExpression expression;
+        ParseTree::PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         auto [openParenthesis, additiveExpression, closeParenthesis] = expression.asBracketedExpression();
         ASSERT_EQ(openParenthesis.value(), "(");
@@ -79,18 +83,19 @@ TEST(Parser, testPrimaryExpression) {
 }
 
 TEST(Parser, testExampleProgram) {
-    code::SourceCodeManagement management{ "PARAM width, height, depth;\n"
+    SourceCodeManagement management{ "PARAM width, height, depth;\n"
                                       "VAR volume;\n"
                                       "CONST density = 2400;\n"
                                       "BEGIN\n"
                                       "\tvolume := width * height * depth;\n"
                                       "\tRETURN density * volume\n"
                                       "END." };
-    lex::Lexer lexer{ management };
-    parse::Parser parser{lexer};
+    Lexer lexer{ management };
+    Parser parser{lexer};
 
     auto program = parser.parse_program();
-    parse::ParseTree::DOTVisitor visitor;
+    ASSERT_TRUE(program.success());
+    ParseTree::DOTVisitor visitor;
 
     CaptureCOut capture;
 
@@ -216,9 +221,7 @@ TEST(Parser, testExampleProgram) {
         "  n_58 [label=\"\\\"volume\\\"\"];\n"
         "  n_24 -- n_59;\n"
         "  n_59 [label=\"\\\"END\\\"\"];\n"
-        "}"
+        "}\n"
     );
 }
-//---------------------------------------------------------------------------
-} // namespace pljit
 //---------------------------------------------------------------------------

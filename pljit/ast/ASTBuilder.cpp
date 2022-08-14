@@ -7,7 +7,6 @@
 #include "pljit/parse/ParseTree.hpp"
 #include "pljit/code/SourceCodeManagement.hpp"
 #include "pljit/lang.hpp"
-#include "pljit/parse/Parser.hpp" // TODO ParseTree header!
 
 //---------------------------------------------------------------------------
 namespace pljit::ast {
@@ -62,6 +61,22 @@ Result<Function> ASTBuilder::analyzeFunction(const parse::ParseTree::FunctionDef
         function.statements.push_back(result.release());
     }
 
+    function.begin_reference = compound.getBeginKeyword().reference();
+    function.total_symbols = symbolTable.size();
+
+    bool found_return = false;
+    for (auto& statement: function.getStatements()) {
+        if (statement->getType() == Node::Type::RETURN_STATEMENT) {
+            found_return = true;
+            break;
+        }
+    }
+
+    if (!found_return) {
+        return compound.getEndKeyword().reference()
+            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Reached end of function without a RETURN statement!");
+    }
+
     return function;
 }
 
@@ -89,7 +104,7 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::ParseT
         variables.emplace_back(*result, identifier.value());
     }
 
-    return ParamDeclaration{ variables };
+    return ParamDeclaration{ node.getParamKeyword().reference(), variables };
 }
 
 Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::ParseTree::VariableDeclarations& node) {
@@ -108,7 +123,7 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::ParseTree:
     variables.emplace_back(*result, declaratorList.getIdentifier().value());
 
     for (auto& [genericTerminal, identifier]: declaratorList.getAdditionalIdentifiers()) {
-        result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::CONST);
+        result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::VAR);
         if (result.failure()) {
             return result.error();
         }
@@ -246,7 +261,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
         std::unique_ptr<Expression> expression = std::make_unique<Multiply>(std::move(unaryExpression), result.release());
         return expression;
     } else if (operatorTerminal.value() == Operator::DIVISION) {
-        std::unique_ptr<Expression> expression = std::make_unique<Divide>(std::move(unaryExpression), result.release());
+        std::unique_ptr<Expression> expression = std::make_unique<Divide>(std::move(unaryExpression), result.release(), operatorTerminal.reference());
         return expression;
     } else {
         return node.reference()

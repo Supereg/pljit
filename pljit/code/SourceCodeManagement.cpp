@@ -76,7 +76,7 @@ void SourceCodeManagement::print_error(
 
     // PRINT ERROR INDICATOR
     for (unsigned i = column; i > 0; --i) {
-        std::cout << ' ';
+        std::cout << ' '; // TODO column count is off when using \t tabs!!!
     }
     std::cout << '^';
     for (unsigned i = 0; i < reference.content().size() - 1; ++i) {

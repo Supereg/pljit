@@ -12,6 +12,8 @@ namespace pljit::parse::ParseTree {
 DOTVisitor::DOTVisitor() = default;
 
 void DOTVisitor::visit(const FunctionDefinition& node) {
+    reset();
+
     unsigned root = ++node_num;
 
     printGraphHeader();

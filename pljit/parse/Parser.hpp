@@ -14,11 +14,12 @@
 //---------------------------------------------------------------------------
 namespace pljit::parse {
 //---------------------------------------------------------------------------
-class Parser { // TODO "RecursiveDescentParser"
+class Parser {
     lex::Lexer* lexer;
 
     public:
-    explicit Parser(lex::Lexer& lexer); // TODO manage lexer creation itself?
+    // TODO make constructivle from SRCMNGMT?
+    explicit Parser(lex::Lexer& lexer);
 
     Result<ParseTree::FunctionDefinition> parse_program();
 

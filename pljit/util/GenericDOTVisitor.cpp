@@ -14,6 +14,10 @@ using std::endl;
 GenericDOTVisitor::GenericDOTVisitor() = default;
 GenericDOTVisitor::~GenericDOTVisitor() = default;
 
+void GenericDOTVisitor::reset() {
+    node_num = 0;
+}
+
 void GenericDOTVisitor::printGraphHeader() const { // NOLINT(readability-convert-member-functions-to-static)
     cout << "graph {" << endl;
 }
@@ -35,7 +39,7 @@ void GenericDOTVisitor::printEdge(unsigned root_node) const {
 }
 
 void GenericDOTVisitor::printGraphFooter() const { // NOLINT(readability-convert-member-functions-to-static)
-    cout << "}";
+    cout << "}" << endl;
 }
 //---------------------------------------------------------------------------
 } // namespace pljit

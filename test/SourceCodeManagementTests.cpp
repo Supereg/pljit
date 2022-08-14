@@ -111,3 +111,5 @@ TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
                              "some program\n"
                              "            ^\n");
 }
+
+// TODO errors with \t character!
