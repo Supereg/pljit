@@ -56,7 +56,7 @@ class ConstantPropagation : public OptimizationPass {
     void optimize(std::unique_ptr<Expression>& expression);
 };
 //---------------------------------------------------------------------------
-}
+} // namespace optimize
 //---------------------------------------------------------------------------
 } // namespace pljit::ast
 //---------------------------------------------------------------------------
