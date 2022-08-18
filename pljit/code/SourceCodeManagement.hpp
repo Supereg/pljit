@@ -15,6 +15,11 @@ namespace pljit::code {
 class SourceCodeReference; // TODO move those to individual headers?
 class SourceCodeError;
 //---------------------------------------------------------------------------
+enum class ErrorType {
+    NOTE,
+    ERROR,
+};
+//---------------------------------------------------------------------------
 class SourceCodeManagement {
     // TODO coupling?
     friend class SourceCodeError; // access to `print_error`
@@ -52,11 +57,6 @@ class SourceCodeManagement {
         SourceCodeReference codeReference() const;
     };
 
-    enum class ErrorType { // TODO move the error type!
-        NOTE,
-        ERROR,
-    };
-
     explicit SourceCodeManagement(std::string&& source_code);
 
     /// Delete copy construction. We don't want to allow copying the string.
@@ -75,7 +75,8 @@ class SourceCodeManagement {
 
     private:
     void print_error(ErrorType type, std::string_view message, const SourceCodeReference& reference) const;
-}; //---------------------------------------------------------------------------
+};
+//---------------------------------------------------------------------------
 class SourceCodeReference {
     friend class SourceCodeManagement::iterator; // allows access to private constructors!
     friend class SourceCodeError; // allow access to `management` for error printing! TODO coupling?
@@ -92,21 +93,23 @@ class SourceCodeReference {
 
     void extend(int amount);
 
-    SourceCodeError makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+    SourceCodeError makeError(ErrorType errorType, std::string_view message) const;
 
     bool operator==(const SourceCodeReference& rhs) const;
-}; //---------------------------------------------------------------------------
+};
+//---------------------------------------------------------------------------
 class SourceCodeError {
-    SourceCodeManagement::ErrorType errorType;
+    ErrorType errorType;
     std::string_view errorMessage;
     SourceCodeReference sourceCodeReference;
 
+    // TODO use std::list!
     std::vector<SourceCodeError> causes;
     public:
 
-    SourceCodeError(SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference);
+    SourceCodeError(ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference);
 
-    SourceCodeManagement::ErrorType type() const;
+    ErrorType type() const;
     std::string_view message() const;
     const SourceCodeReference& reference() const;
 

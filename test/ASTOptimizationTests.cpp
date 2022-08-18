@@ -25,7 +25,7 @@ static Result<Function> buildAST(const SourceCodeManagement& management) {
     Lexer lexer{ management };
     Parser parser{ lexer };
 
-    Result<ParseTree::FunctionDefinition> program = parser.parse_program();
+    Result<FunctionDefinition> program = parser.parse_program();
     if (program.failure()) {
         program.error().printCompilerError();
     }

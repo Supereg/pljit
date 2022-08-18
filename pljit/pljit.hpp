@@ -6,62 +6,62 @@
 #define PLJIT_PLJIT_HPP
 
 #include "./util/Result.hpp"
-#include "./code/SourceCodeManagement.hpp"
-#include "./ast/AST.hpp"
-#include <initializer_list>
 #include <string>
-#include <optional>
-#include <atomic>
-#include <mutex>
 #include <memory>
+#include <initializer_list>
 
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
-class Pljit {
+class Pljit;
+class PljitFunction;
+//---------------------------------------------------------------------------
+class PljitFunctionHandle {
+    friend class Pljit;
+
+    PljitFunction* function;
+
+    explicit PljitFunctionHandle(PljitFunction* function);
     public:
 
-    // TODO make those non-nested types!
-    class PljitFunction {
-        code::SourceCodeManagement source_code;
+    // Copy constructor
+    PljitFunctionHandle(const PljitFunctionHandle& other) = default;
+    // Move constructor
+    PljitFunctionHandle(PljitFunctionHandle&& other) noexcept = default;
+    // Copy assignment
+    PljitFunctionHandle& operator=(const PljitFunctionHandle& other) = default;
+    // Move assignment
+    PljitFunctionHandle& operator=(PljitFunctionHandle&& other) noexcept = default;
 
-        std::atomic<bool> function_compiled;
-        std::mutex compile_mutex;
+    // TODO use a different result type for runtime error messages?
+    template <typename... T>
+    Result<long long> operator()(T... arguments) const;
+    Result<long long> operator()(std::initializer_list<long long> argument_list) const;
+};
 
-        std::optional<ast::Function> function;
-        std::optional<code::SourceCodeError> compilation_error;
+template <typename... T>
+Result<long long> PljitFunctionHandle::operator()(T... arguments) const {
+    return operator()({arguments...});
+}
+//---------------------------------------------------------------------------
+class Pljit {
+    friend class PljitFunctionHandle;
 
+    class ListNode {
         public:
-        explicit PljitFunction(code::SourceCodeManagement&& source_code);
+        std::unique_ptr<PljitFunction> function;
+        ListNode* next;
 
-        Result<long long> evaluate(const std::vector<long long>& arguments);
-        void ensure_compiled();
+        explicit ListNode(std::unique_ptr<PljitFunction> function);
     };
 
-    // TODO make those non-nested types!
-    class PljitFunctionHandle {
-        std::shared_ptr<PljitFunction> handle;
+    ListNode* list_head;
+    std::allocator<ListNode> allocator;
 
-        public:
-        explicit PljitFunctionHandle(std::shared_ptr<PljitFunction> handle);
-
-        // Copy constructor
-        PljitFunctionHandle(const PljitFunctionHandle& other) = default;
-        // Move constructor
-        PljitFunctionHandle(PljitFunctionHandle&& other) noexcept = default;
-        // Copy assignment
-        PljitFunctionHandle& operator=(const PljitFunctionHandle& other) = default;
-        // Move assignment
-        PljitFunctionHandle& operator=(PljitFunctionHandle&& other) noexcept = default;
-
-        template <typename... T>
-        Result<long long> operator()(T... arguments) const;
-        Result<long long> operator()(std::initializer_list<long long> argument_list) const;
-    };
-
+    public:
     Pljit();
+    ~Pljit();
 
-    // TODO specification tells that stuff should be stored within the JIT class?
     PljitFunctionHandle registerFunction(std::string&& source_code);
 };
 //---------------------------------------------------------------------------

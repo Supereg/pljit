@@ -41,14 +41,14 @@ SymbolTable::Symbol& SymbolTable::operator[](symbol_id symbolId) {
     return symbols[index];
 }
 
-Result<symbol_id> SymbolTable::declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType) {
+Result<symbol_id> SymbolTable::declareIdentifier(const parse::Identifier& identifier, SymbolType symbolType) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (existingSymbol) {
         return identifier.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Redefinition of identifier!")
+            .makeError(code::ErrorType::ERROR, "Redefinition of identifier!")
             .withCause(
                 existingSymbol->reference()
-                    .makeError(code::SourceCodeManagement::ErrorType::NOTE, "Original declaration here"));
+                    .makeError(code::ErrorType::NOTE, "Original declaration here"));
     }
 
     symbol_id id = symbols.size() + 1; // symbol id of 0 is invalid!
@@ -62,31 +62,31 @@ Result<symbol_id> SymbolTable::declareIdentifier(const parse::ParseTree::Identif
     return id;
 }
 
-Result<symbol_id> SymbolTable::useIdentifier(const parse::ParseTree::Identifier& identifier) {
+Result<symbol_id> SymbolTable::useIdentifier(const parse::Identifier& identifier) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
+            .makeError(code::ErrorType::ERROR, "Using undeclared identifier!");
     }
 
     if (!existingSymbol->isInitialized()) {
         return identifier.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Tried to use uninitialized variable!");
+            .makeError(code::ErrorType::ERROR, "Tried to use uninitialized variable!");
     }
 
     return existingSymbol->id();
 }
 
-Result<symbol_id> SymbolTable::useAsAssignmentTarget(const parse::ParseTree::Identifier& identifier) {
+Result<symbol_id> SymbolTable::useAsAssignmentTarget(const parse::Identifier& identifier) {
     std::optional<Symbol> existingSymbol = retrieveSymbol(identifier.value());
     if (!existingSymbol) {
         return identifier.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Using undeclared identifier!");
+            .makeError(code::ErrorType::ERROR, "Using undeclared identifier!");
     }
 
     if (existingSymbol->isConstant()) {
         return identifier.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Can't assign to constant!");
+            .makeError(code::ErrorType::ERROR, "Can't assign to constant!");
     }
 
     operator[](existingSymbol->id()).markInitialized();

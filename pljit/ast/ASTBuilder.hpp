@@ -29,18 +29,18 @@ class ASTBuilder {
     public:
     ASTBuilder();
 
-    Result<Function> analyzeFunction(const parse::ParseTree::FunctionDefinition& node);
+    Result<Function> analyzeFunction(const parse::FunctionDefinition& node);
 
-    Result<ParamDeclaration> analyzeParamDeclaration(const parse::ParseTree::ParameterDeclarations& node);
-    Result<VarDeclaration> analyzeVarDeclaration(const parse::ParseTree::VariableDeclarations& node);
-    Result<ConstDeclaration> analyzeConstDeclaration(const parse::ParseTree::ConstantDeclarations& node);
+    Result<ParamDeclaration> analyzeParamDeclaration(const parse::ParameterDeclarations& node);
+    Result<VarDeclaration> analyzeVarDeclaration(const parse::VariableDeclarations& node);
+    Result<ConstDeclaration> analyzeConstDeclaration(const parse::ConstantDeclarations& node);
 
-    Result<std::unique_ptr<Statement>> analyzeStatement(const parse::ParseTree::Statement& node); // TODO return ptr!
+    Result<std::unique_ptr<Statement>> analyzeStatement(const parse::Statement& node);
 
-    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::ParseTree::AdditiveExpression& node);
-    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::ParseTree::MultiplicativeExpression& node);
-    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::ParseTree::UnaryExpression& node);
-    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::ParseTree::PrimaryExpression& node);
+    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::AdditiveExpression& node);
+    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::MultiplicativeExpression& node);
+    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::UnaryExpression& node);
+    Result<std::unique_ptr<Expression>> analyzeExpression(const parse::PrimaryExpression& node);
 };
 //---------------------------------------------------------------------------
 } // namespace pljit::ast

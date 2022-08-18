@@ -44,11 +44,11 @@ TEST(SourceCodeManagement, testSourceCodeError) {
     auto reference = management.begin().codeReference();
     reference.extend(10);
 
-    SourceCodeError error = reference.makeError(SourceCodeManagement::ErrorType::NOTE, "some error!");
+    SourceCodeError error = reference.makeError(ErrorType::NOTE, "some error!");
 
     ASSERT_EQ(error.reference().content(), "Hello world");
     ASSERT_EQ(error.message(), "some error!");
-    ASSERT_EQ(error.type(), SourceCodeManagement::ErrorType::NOTE);
+    ASSERT_EQ(error.type(), ErrorType::NOTE);
 
     CaptureCOut capture;
 
@@ -63,7 +63,7 @@ TEST(SourceCodeManagement, testEmptySourceCode) {
     SourceCodeManagement management{ std::move(program) };
 
     SourceCodeError error{
-        SourceCodeManagement::ErrorType::ERROR,
+        ErrorType::ERROR,
         "It's an error!",
         management.begin().codeReference()
     };
@@ -81,7 +81,7 @@ TEST(SourceCodeManagement, testErrorAtIteratorEnd) {
     SourceCodeManagement management{ std::move(program) };
 
     SourceCodeError error{
-        SourceCodeManagement::ErrorType::ERROR,
+        ErrorType::ERROR,
         "It's an error!",
         management.end().codeReference()
     };
@@ -99,7 +99,7 @@ TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
     SourceCodeManagement management{ std::move(program) };
 
     SourceCodeError error{
-        SourceCodeManagement::ErrorType::ERROR,
+        ErrorType::ERROR,
         "It's an error!",
         (--management.end()).codeReference()
     };

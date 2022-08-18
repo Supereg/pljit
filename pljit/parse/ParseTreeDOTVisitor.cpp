@@ -7,7 +7,7 @@
 #include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit::parse::ParseTree {
+namespace pljit::parse {
 //---------------------------------------------------------------------------
 DOTVisitor::DOTVisitor() = default;
 
@@ -286,5 +286,5 @@ void DOTVisitor::visit(const GenericTerminal& node) {
     printTerminalNode(node.value());
 }
 //---------------------------------------------------------------------------
-} // namespace pljit::parse::ParseTree
+} // namespace pljit::parse
 //---------------------------------------------------------------------------

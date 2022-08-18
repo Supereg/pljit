@@ -245,6 +245,7 @@ class ConstDeclaration: public Declaration {
     std::vector<std::tuple<const Variable&, const Literal&>> getConstDeclarations() const;
 };
 
+// TODO one generic `AST` node file?
 class Function: public Node {
     // TODO really friends?
     friend class ASTBuilder;

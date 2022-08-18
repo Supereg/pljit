@@ -11,7 +11,7 @@
 #include <optional>
 
 //---------------------------------------------------------------------------
-namespace pljit { // TODO header shouldn't be part of the lex directory?
+namespace pljit {
 //---------------------------------------------------------------------------
 struct Keyword {
     static constexpr std::string_view PARAM = "PARAM";
@@ -40,12 +40,6 @@ struct Separator {
     static constexpr std::string_view COMMA = ",";
     static constexpr std::string_view SEMICOLON = ";";
     static constexpr std::string_view END_OF_PROGRAM = ".";
-};
-
-struct Whitespace { // TODO unused?
-    static constexpr std::string_view SPACE = " ";
-    static constexpr std::string_view TAB = "\t";
-    static constexpr std::string_view NEW_LINE = "\n";
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

@@ -17,7 +17,7 @@ TEST(Parser, testGenericTerminal) {
     Lexer lexer{management};
     Parser parser{lexer};
 
-    ParseTree::GenericTerminal terminal;
+    GenericTerminal terminal;
     ASSERT_FALSE(parser.parseGenericTerminal(terminal, Token::Type::KEYWORD, Keyword::BEGIN, "expected BEGIN").has_value());
     ASSERT_EQ(terminal.value(), "BEGIN");
     ASSERT_TRUE(lexer.endOfStream());
@@ -28,7 +28,7 @@ TEST(Parser, testLiteral) {
     Lexer lexer{management};
     Parser parser{lexer};
 
-    ParseTree::Literal literal;
+    Literal literal;
     ASSERT_FALSE(parser.parseLiteral(literal).has_value());
     ASSERT_EQ(literal.value(), 2731);
     ASSERT_TRUE(lexer.endOfStream());
@@ -39,7 +39,7 @@ TEST(Parser, testIdentifier) {
     Lexer lexer{management};
     Parser parser{lexer};
 
-    ParseTree::Identifier identifier;
+    Identifier identifier;
     ASSERT_FALSE(parser.parseIdentifier(identifier).has_value());
     ASSERT_EQ(identifier.value(), "Program");
     ASSERT_TRUE(lexer.endOfStream());
@@ -51,7 +51,7 @@ TEST(Parser, testPrimaryExpression) {
         Lexer lexer{management};
         Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asIdentifier().value(), "width");
         ASSERT_TRUE(lexer.endOfStream());
@@ -61,7 +61,7 @@ TEST(Parser, testPrimaryExpression) {
         Lexer lexer{management};
         Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         ASSERT_EQ(expression.asLiteral().value(), 12);
         ASSERT_TRUE(lexer.endOfStream());
@@ -71,7 +71,7 @@ TEST(Parser, testPrimaryExpression) {
         Lexer lexer{management};
         Parser parser{lexer};
 
-        ParseTree::PrimaryExpression expression;
+        PrimaryExpression expression;
         ASSERT_FALSE(parser.parsePrimaryExpression(expression).has_value());
         auto [openParenthesis, additiveExpression, closeParenthesis] = expression.asBracketedExpression();
         ASSERT_EQ(openParenthesis.value(), "(");
@@ -95,7 +95,7 @@ TEST(Parser, testExampleProgram) {
 
     auto program = parser.parse_program();
     ASSERT_TRUE(program.success());
-    ParseTree::DOTVisitor visitor;
+    DOTVisitor visitor;
 
     CaptureCOut capture;
 

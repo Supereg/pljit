@@ -6,14 +6,8 @@
 #include "pljit/lang.hpp"
 #include <charconv>
 
-// TODO namespaces in the implementationf files!
-
-// TODO check variable ordering (bigger to smaller!)
-
 //---------------------------------------------------------------------------
 namespace pljit::parse {
-//---------------------------------------------------------------------------
-using namespace ParseTree;
 //---------------------------------------------------------------------------
 Parser::Parser(lex::Lexer& lexer) : lexer(&lexer) {}
 
@@ -28,6 +22,7 @@ Result<FunctionDefinition> Parser::parse_program() { // TODO whats the cache lin
     return definition;
 }
 
+// TODO return the value!
 std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinition& destination) {
     Result<lex::Token> result;
 
@@ -73,7 +68,7 @@ std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDef
     }
 
     if (result->getType() != lex::Token::Type::KEYWORD) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected `BEGIN` keyword!");
+        return result->makeError(code::ErrorType::ERROR, "Expected `BEGIN` keyword!");
     }
 
     if (auto error = parseCompoundStatement(destination.compoundStatement);
@@ -87,13 +82,13 @@ std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDef
     }
 
     if (!result->is(lex::Token::Type::SEPARATOR, Separator::END_OF_PROGRAM)) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected `.` terminator!");
+        return result->makeError(code::ErrorType::ERROR, "Expected `.` terminator!");
     }
 
     if (!lexer->endOfStream()) {
         return lexer->cur_position()
             .codeReference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "unexpected character after end of program terminator!");
+            .makeError(code::ErrorType::ERROR, "unexpected character after end of program terminator!");
     }
 
     return {};
@@ -192,7 +187,6 @@ std::optional<code::SourceCodeError> Parser::parseDeclaratorList(DeclaratorList&
             return error;
         }
 
-        // TODO implicit constructor a good idea?
         destination.additionalIdentifiers.emplace_back(result->reference(), identifier);
     }
 
@@ -332,7 +326,7 @@ std::optional<code::SourceCodeError> Parser::parseStatement(Statement& destinati
         destination.type = Statement::Type::ASSIGNMENT;
         destination.symbols.push_back(std::make_unique<AssignmentExpression>(std::move(expression)));
     } else {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
+        return result->makeError(code::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
     }
 
     return {};
@@ -479,7 +473,7 @@ std::optional<code::SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpre
 
         if (auto error = parseGenericTerminal(close, lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
             error.has_value()) {
-            return error->withCause(open.reference().makeError(code::SourceCodeManagement::ErrorType::NOTE, "opening bracket here"));
+            return error->withCause(open.reference().makeError(code::ErrorType::NOTE, "opening bracket here"));
         }
 
         destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
@@ -487,7 +481,7 @@ std::optional<code::SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpre
         destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
         destination.symbols.push_back(std::make_unique<GenericTerminal>(close));
     } else {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
+        return result->makeError(code::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
     }
 
     return {};
@@ -502,7 +496,7 @@ std::optional<code::SourceCodeError> Parser::parseIdentifier(Identifier& destina
     }
 
     if (result->getType() != lex::Token::Type::IDENTIFIER) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected string!");
+        return result->makeError(code::ErrorType::ERROR, "Expected string!");
     }
 
     destination.src_reference = result->reference();
@@ -518,7 +512,7 @@ std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) 
     }
 
     if (result->getType() != lex::Token::Type::LITERAL) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Expected literal!");
+        return result->makeError(code::ErrorType::ERROR, "Expected literal!");
     }
 
     std::string_view literal = result->reference().content();
@@ -528,13 +522,13 @@ std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) 
 
     if (conversion.ec != std::errc{}) {
         if (conversion.ec == std::errc::result_out_of_range) {
-            return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Integer literal is out of range. Expected singed 64-bit!");
+            return result->makeError(code::ErrorType::ERROR, "Integer literal is out of range. Expected singed 64-bit!");
         }
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered unexpected error parsing integer literal!");
+        return result->makeError(code::ErrorType::ERROR, "Encountered unexpected error parsing integer literal!");
     }
 
     if (conversion.ptr != literal.data() + literal.size()) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
+        return result->makeError(code::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
     }
 
     // TODO might be bad style; writing into variables?
@@ -557,7 +551,7 @@ std::optional<code::SourceCodeError> Parser::parseGenericTerminal(
     }
 
     if (!result->is(expected_type, expected_content)) {
-        return result->makeError(code::SourceCodeManagement::ErrorType::ERROR, potential_error_message);
+        return result->makeError(code::ErrorType::ERROR, potential_error_message);
     }
 
     destination.src_reference = result->reference();

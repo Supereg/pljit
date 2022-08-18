@@ -7,7 +7,7 @@
 #include <cassert>
 
 //---------------------------------------------------------------------------
-namespace pljit::parse::ParseTree {
+namespace pljit::parse {
 //---------------------------------------------------------------------------
 Symbol::Symbol() : src_reference() {}
 
@@ -332,5 +332,5 @@ void FunctionDefinition::accept(ParseTreeVisitor& visitor) const {
     visitor.visit(*this);
 }
 //---------------------------------------------------------------------------
-} // namespace pljit::parse::ParseTree
+} // namespace pljit::parse
 //---------------------------------------------------------------------------

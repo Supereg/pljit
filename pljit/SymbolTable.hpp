@@ -59,9 +59,9 @@ class SymbolTable {
     std::optional<Symbol> retrieveSymbol(std::string_view identifier_name);
     Symbol& operator[](symbol_id symbolId);
 
-    Result<symbol_id> declareIdentifier(const parse::ParseTree::Identifier& identifier, SymbolType symbolType);
-    Result<symbol_id> useIdentifier(const parse::ParseTree::Identifier& identifier);
-    Result<symbol_id> useAsAssignmentTarget(const parse::ParseTree::Identifier& identifier);
+    Result<symbol_id> declareIdentifier(const parse::Identifier& identifier, SymbolType symbolType);
+    Result<symbol_id> useIdentifier(const parse::Identifier& identifier);
+    Result<symbol_id> useAsAssignmentTarget(const parse::Identifier& identifier);
 };
 //---------------------------------------------------------------------------
 } // namespace pljit

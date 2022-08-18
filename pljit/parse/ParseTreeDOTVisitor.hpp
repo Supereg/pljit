@@ -8,7 +8,7 @@
 #include "pljit/util/GenericDOTVisitor.hpp"
 
 //---------------------------------------------------------------------------
-namespace pljit::parse::ParseTree {
+namespace pljit::parse {
 //---------------------------------------------------------------------------
 class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     public:
@@ -35,7 +35,7 @@ class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     void visit(const FunctionDefinition& node) override;
 };
 //---------------------------------------------------------------------------
-} // namespace pljit::parse::ParseTree
+} // namespace pljit::parse
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_PARSETREEDOTVISITOR_HPP

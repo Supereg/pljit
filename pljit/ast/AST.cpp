@@ -212,7 +212,7 @@ Result<long long> Divide::evaluate(EvaluationContext& context) const {
 
     if (*rhs == 0) {
         // TODO specification says "halt program and >print< error messages"?
-        return operatorSymbol.makeError(code::SourceCodeManagement::ErrorType::ERROR, "Division by zero!");
+        return operatorSymbol.makeError(code::ErrorType::ERROR, "Division by zero!");
     }
 
     return *lhs / *rhs;
@@ -294,9 +294,9 @@ void ParamDeclaration::accept(ASTVisitor& visitor) const {
 
 std::optional<code::SourceCodeError> ParamDeclaration::evaluate(EvaluationContext& context, std::vector<long long> arguments) const {
     if (arguments.size() > declaredIdentifiers.size()) {
-        return paramKeyword.makeError(code::SourceCodeManagement::ErrorType::ERROR, "Received to many arguments!");
+        return paramKeyword.makeError(code::ErrorType::ERROR, "Received to many arguments!");
     } else if (arguments.size() < declaredIdentifiers.size()) {
-        return paramKeyword.makeError(code::SourceCodeManagement::ErrorType::ERROR, "Received to few arguments!");
+        return paramKeyword.makeError(code::ErrorType::ERROR, "Received to few arguments!");
     }
 
     for (std::size_t index = 0; index < arguments.size(); ++index) {
@@ -378,7 +378,7 @@ Result<long long> Function::evaluate(const std::vector<long long>& arguments) co
         }
     } else if (!arguments.empty()) {
         return begin_reference
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Provided arguments to function with missing PARAM declaration!");
+            .makeError(code::ErrorType::ERROR, "Provided arguments to function with missing PARAM declaration!");
     }
 
     if (constDeclaration) {

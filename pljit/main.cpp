@@ -8,6 +8,8 @@
 using namespace std;
 //---------------------------------------------------------------------------
 
+// TODO remove main file!
+
 void print(const pljit::lex::Token& token) {
     switch (token.getType()) {
         case pljit::lex::Token::Type::EMPTY:
@@ -25,6 +27,7 @@ void print(const pljit::lex::Token& token) {
 //  e.g. parsing in e.g. separate namespace
 // TODO separate into library and executable (CLI/frontend)
 // TODO include directories (e.g. #include "foo/header.h")
+// TODO check variable ordering (bigger to smaller!)
 
 int main() {
     std::string program = "PARAM width, height, depth;";
@@ -39,7 +42,7 @@ int main() {
         result = lexer.consume_next();
         print(result.value());
 
-        auto error = pljit::code::SourceCodeError(pljit::code::SourceCodeManagement::ErrorType::ERROR, "Hello. This is invalid!", result.value().reference());
+        auto error = pljit::code::SourceCodeError(pljit::code::ErrorType::ERROR, "Hello. This is invalid!", result.value().reference());
         error.printCompilerError();
 
         result = lexer.consume_next();

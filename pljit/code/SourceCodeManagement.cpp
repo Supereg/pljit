@@ -27,7 +27,7 @@ std::string_view SourceCodeManagement::content() const {
 }
 
 void SourceCodeManagement::print_error(
-    SourceCodeManagement::ErrorType type,
+    ErrorType type,
     std::string_view message,
     const SourceCodeReference& reference
 ) const {
@@ -148,7 +148,7 @@ void SourceCodeReference::extend(int amount) {
     string_content = { string_content.data(), string_content.size() + amount };
 }
 
-SourceCodeError SourceCodeReference::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
+SourceCodeError SourceCodeReference::makeError(ErrorType errorType, std::string_view message) const {
     return { errorType, message, *this };
 }
 
@@ -157,10 +157,10 @@ bool SourceCodeReference::operator==(const SourceCodeReference& rhs) const {
         string_content == rhs.string_content;
 }
 //---------------------------------------------------------------------------
-SourceCodeError::SourceCodeError(SourceCodeManagement::ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference)
+SourceCodeError::SourceCodeError(ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference)
     : errorType(errorType), errorMessage(errorMessage), sourceCodeReference(sourceCodeReference) {}
 
-SourceCodeManagement::ErrorType SourceCodeError::type() const {
+ErrorType SourceCodeError::type() const {
     return errorType;
 }
 

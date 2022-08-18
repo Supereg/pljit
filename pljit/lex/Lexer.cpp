@@ -73,7 +73,7 @@ SourceCodeReference Token::reference() const {
     return source_code;
 }
 
-SourceCodeError Token::makeError(SourceCodeManagement::ErrorType errorType, std::string_view message) const {
+SourceCodeError Token::makeError(ErrorType errorType, std::string_view message) const {
     return reference().makeError(errorType, message);
 }
 
@@ -212,7 +212,7 @@ Result<Token> Lexer::next() {
             case Token::ExtendResult::ERRONEOUS_CHARACTER: {
                 return current_position
                     .codeReference()
-                    .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected character!");
+                    .makeError(ErrorType::ERROR, "unexpected character!");
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -230,7 +230,7 @@ Result<Token> Lexer::next() {
     if (token.isEmpty()) {
         return current_position
             .codeReference()
-            .makeError(SourceCodeManagement::ErrorType::ERROR, "unexpected end of stream!");
+            .makeError(ErrorType::ERROR, "unexpected end of stream!");
     }
 
     token.finalize();

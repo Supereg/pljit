@@ -13,7 +13,7 @@ namespace pljit::ast {
 //---------------------------------------------------------------------------
 ASTBuilder::ASTBuilder() : symbolTable() {}
 
-Result<Function> ASTBuilder::analyzeFunction(const parse::ParseTree::FunctionDefinition& node) {
+Result<Function> ASTBuilder::analyzeFunction(const parse::FunctionDefinition& node) {
     Function function;
     Result<std::unique_ptr<Statement>> result;
 
@@ -74,13 +74,13 @@ Result<Function> ASTBuilder::analyzeFunction(const parse::ParseTree::FunctionDef
 
     if (!found_return) {
         return compound.getEndKeyword().reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Reached end of function without a RETURN statement!");
+            .makeError(code::ErrorType::ERROR, "Reached end of function without a RETURN statement!");
     }
 
     return function;
 }
 
-Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::ParseTree::ParameterDeclarations& node) {
+Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::ParameterDeclarations& node) {
     Result<symbol_id> result;
     auto& declaratorList = node.getDeclaratorList();
 
@@ -107,7 +107,7 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::ParseT
     return ParamDeclaration{ node.getParamKeyword().reference(), variables };
 }
 
-Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::ParseTree::VariableDeclarations& node) {
+Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::VariableDeclarations& node) {
     // TODO code duplication!
     Result<symbol_id> result;
     auto& declaratorList = node.getDeclaratorList();
@@ -134,7 +134,7 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::ParseTree:
     return VarDeclaration{ variables };
 }
 
-Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const parse::ParseTree::ConstantDeclarations& node) {
+Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const parse::ConstantDeclarations& node) {
     Result<symbol_id> result;
     auto& initDeclaratorList = node.getInitDeclaratorList();
     auto& initDeclarator = initDeclaratorList.getInitDeclarator();
@@ -165,11 +165,11 @@ Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const parse::ParseT
     return ConstDeclaration{ variables, literals };
 }
 
-Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::ParseTree::Statement& node) {
+Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::Statement& node) {
     Result<std::unique_ptr<Expression>> result;
 
     switch (node.getType()) {
-        case parse::ParseTree::Statement::Type::ASSIGNMENT: {
+        case parse::Statement::Type::ASSIGNMENT: {
             auto& assignment = node.asAssignmentExpression();
 
             result = analyzeExpression(assignment.getAdditiveExpression());
@@ -188,7 +188,7 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::Par
             );
             return statement;
         }
-        case parse::ParseTree::Statement::Type::RETURN: {
+        case parse::Statement::Type::RETURN: {
             auto [returnKeyword, additiveExpression] = node.asReturnExpression();
 
             result = analyzeExpression(additiveExpression);
@@ -199,14 +199,14 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::Par
             std::unique_ptr<Statement> statement = std::make_unique<ReturnStatement>(result.release());
             return statement;
         }
-        case parse::ParseTree::Statement::Type::NONE:
+        case parse::Statement::Type::NONE:
             return node.reference()
-                .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parser tree state! Expected ASSIGNMENT or RETURN!");
+                .makeError(code::ErrorType::ERROR, "Encountered illegal parser tree state! Expected ASSIGNMENT or RETURN!");
     }
 
     return {};
 }
-Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::ParseTree::AdditiveExpression& node) {
+Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::AdditiveExpression& node) {
     Result<std::unique_ptr<Expression>> result;
 
     result = analyzeExpression(node.getExpression());
@@ -234,10 +234,10 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
         return expression;
     } else {
         return node.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
+            .makeError(code::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
     }
 }
-Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::ParseTree::MultiplicativeExpression& node) {
+Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::MultiplicativeExpression& node) {
     Result<std::unique_ptr<Expression>> result;
 
     result = analyzeExpression(node.getExpression());
@@ -265,10 +265,10 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
         return expression;
     } else {
         return node.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected MULTIPLICATION or DIVISION!");
+            .makeError(code::ErrorType::ERROR, "Encountered illegal parse tree state! Expected MULTIPLICATION or DIVISION!");
     }
 }
-Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::ParseTree::UnaryExpression& node) {
+Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::UnaryExpression& node) {
     Result<std::unique_ptr<Expression>> result;
 
     result = analyzeExpression(node.getPrimaryExpression());
@@ -290,14 +290,14 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
         return expression;
     } else {
         return node.reference()
-            .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
+            .makeError(code::ErrorType::ERROR, "Encountered illegal parse tree state! Expected PLUS or MINUS!");
     }
 }
-Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::ParseTree::PrimaryExpression& node) {
+Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::PrimaryExpression& node) {
     std::unique_ptr<Expression> expression;
 
     switch (node.getType()) {
-        case parse::ParseTree::PrimaryExpression::Type::IDENTIFIER: {
+        case parse::PrimaryExpression::Type::IDENTIFIER: {
             Result<symbol_id> result = symbolTable.useIdentifier(node.asIdentifier());
             if (result.failure()) {
                 return result.error();
@@ -306,16 +306,16 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
             expression = std::make_unique<Variable>(*result, node.asIdentifier().value());
             return expression;
         }
-        case parse::ParseTree::PrimaryExpression::Type::LITERAL:
+        case parse::PrimaryExpression::Type::LITERAL:
             expression = std::make_unique<Literal>(node.asLiteral().value());
             return expression;
-        case parse::ParseTree::PrimaryExpression::Type::ADDITIVE_EXPRESSION: {
+        case parse::PrimaryExpression::Type::ADDITIVE_EXPRESSION: {
             auto [openParenthesis, additiveExpression, closeParenthesis] = node.asBracketedExpression();
             return analyzeExpression(additiveExpression);
         }
         default:
             return node.reference()
-                .makeError(code::SourceCodeManagement::ErrorType::ERROR, "Encountered illegal parse tree state! Expected IDENTIFIER, LITERAL or ADDITIVE_EXPRESSION!");
+                .makeError(code::ErrorType::ERROR, "Encountered illegal parse tree state! Expected IDENTIFIER, LITERAL or ADDITIVE_EXPRESSION!");
     }
 }
 //---------------------------------------------------------------------------

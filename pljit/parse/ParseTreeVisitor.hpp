@@ -5,7 +5,7 @@
 #ifndef PLJIT_PARSETREEVISITOR_HPP
 #define PLJIT_PARSETREEVISITOR_HPP
 //---------------------------------------------------------------------------
-namespace pljit::parse::ParseTree {
+namespace pljit::parse {
 //---------------------------------------------------------------------------
 class GenericTerminal;
 class Identifier;
@@ -51,6 +51,6 @@ class ParseTreeVisitor {
     virtual void visit(const FunctionDefinition& node) = 0;
 };
 //---------------------------------------------------------------------------
-} // namespace pljit::parse::ParseTree
+} // namespace pljit::parse
 //---------------------------------------------------------------------------
 #endif //PLJIT_PARSETREEVISITOR_HPP

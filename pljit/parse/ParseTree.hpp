@@ -15,8 +15,6 @@ namespace pljit::parse {
 //---------------------------------------------------------------------------
 class Parser;
 //---------------------------------------------------------------------------
-namespace ParseTree { // TODO remove this namespace!
-//---------------------------------------------------------------------------
 class ParseTreeVisitor;
 class AdditiveExpression;
 //---------------------------------------------------------------------------
@@ -25,7 +23,8 @@ class Symbol {
 
     protected:
     // TODO not initialized in many symbols!!! (e.g. Primary Expression!)
-    code::SourceCodeReference src_reference; // TODO getter checks for nullptr!!!
+    // TODO getter checks for nullptr!!!
+    code::SourceCodeReference src_reference;
     public:
     Symbol();
     Symbol(code::SourceCodeReference src_reference);
@@ -349,8 +348,6 @@ class FunctionDefinition : public Symbol {
 
     void accept(ParseTreeVisitor& visitor) const override;
 };
-//---------------------------------------------------------------------------
-} // namespace ParseTree
 //---------------------------------------------------------------------------
 } // namespace pljit::parse
 //---------------------------------------------------------------------------

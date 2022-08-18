@@ -22,6 +22,10 @@ TEST(Pljit, testExampleProgram) {
     auto result = func({100, 100, 100});
     ASSERT_TRUE(result.success());
     ASSERT_EQ(*result, 2400000000);
+
+    result = func(100, 100, 100);
+    ASSERT_TRUE(result.success());
+    ASSERT_EQ(*result, 2400000000);
 }
 
 // TODO test some more programs!

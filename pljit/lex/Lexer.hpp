@@ -86,11 +86,11 @@ class Token {
 
     /**
      * Shorthand way to create a {@class SourceCodeError} at the current {@class SourceCodeReference}.
-     * @param errorType The {@class SourceCodeManagement::ErrorType}.
+     * @param errorType The {@class ErrorType}.
      * @param message The view to the error message.
      * @return The created {@class SourceCodeError} with the given type and message.
      */
-    [[nodiscard]] code::SourceCodeError makeError(code::SourceCodeManagement::ErrorType errorType, std::string_view message) const;
+    [[nodiscard]] code::SourceCodeError makeError(code::ErrorType errorType, std::string_view message) const;
 
     /**
      * Access to the Token's source code content.
