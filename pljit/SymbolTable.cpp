@@ -3,8 +3,6 @@
 //
 
 #include "SymbolTable.hpp"
-#include "pljit/code/SourceCodeManagement.hpp"
-#include "pljit/parse/ParseTree.hpp"
 #include <cassert>
 
 //---------------------------------------------------------------------------
@@ -46,7 +44,7 @@ Result<symbol_id> SymbolTable::declareIdentifier(const parse::Identifier& identi
     if (existingSymbol) {
         return identifier.reference()
             .makeError(code::ErrorType::ERROR, "Redefinition of identifier!")
-            .withCause(
+            .attachCause(
                 existingSymbol->reference()
                     .makeError(code::ErrorType::NOTE, "Original declaration here"));
     }

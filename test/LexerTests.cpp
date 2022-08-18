@@ -11,7 +11,7 @@ using namespace pljit::lex;
 #define ASSERT_TOKEN(result, type, exp_content) \
     ASSERT_TRUE((result).success()); \
     EXPECT_EQ((result).value().getType(), (type)); \
-    ASSERT_EQ((result).value().reference().content(), (exp_content))
+    ASSERT_EQ(*(result).value().reference(), (exp_content))
 
 #define ASSERT_NEXT_TOKEN(lexer, result, type, exp_content) \
     (result) = (lexer).consume_next(); \

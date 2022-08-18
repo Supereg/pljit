@@ -6,7 +6,7 @@
 #define PLJIT_ASTBUILDER_HPP
 #include "../parse/ParseTree.hpp"
 #include "../util/Result.hpp"
-#include "pljit/SymbolTable.hpp"
+#include "../SymbolTable.hpp"
 #include <memory>
 
 // TODO search for unused stuff!

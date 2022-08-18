@@ -5,7 +5,7 @@
 #ifndef PLJIT_RESULT_HPP
 #define PLJIT_RESULT_HPP
 
-#include "../code/SourceCodeManagement.hpp" // TODO we only need the SourceCodeError!
+#include "../code/SourceCode.hpp"
 #include <cassert>
 #include <concepts>
 #include <optional>
@@ -29,11 +29,12 @@ class Result {
     code::SourceCodeError error() const;
 
     // TODO prepend with "is" keyword! Both!
+
+    // TODO bool implicit conversion
+    // TODO * and -> operator!
     bool success() const;
 
     bool failure() const;
-
-    bool operator==(const Result& rhs) const requires std::equality_comparable<T>;
 
     const T& operator*() const;
     const T* operator->() const;
@@ -73,12 +74,6 @@ bool Result<T>::success() const {
 template <typename T>
 bool Result<T>::failure() const {
     return source_error.has_value();
-}
-
-template <typename T>
-bool Result<T>::operator==(const Result& rhs) const requires std::equality_comparable<T> {
-    return source_error == rhs.source_error &&
-        result_content == rhs.result_content;
 }
 
 template <typename T>

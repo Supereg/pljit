@@ -6,9 +6,9 @@
 #define PLJIT_SYMBOLTABLE_HPP
 
 #include "./symbol_id.hpp"
-#include "pljit/code/SourceCodeManagement.hpp"
-#include "pljit/parse/ParseTree.hpp"
-#include "pljit/util/Result.hpp"
+#include "./code/SourceCode.hpp"
+#include "./parse/ParseTree.hpp"
+#include "./util/Result.hpp"
 #include <unordered_map>
 #include <vector>
 

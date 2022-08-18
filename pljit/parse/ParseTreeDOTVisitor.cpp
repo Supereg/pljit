@@ -4,7 +4,6 @@
 
 #include "./ParseTreeDOTVisitor.hpp"
 #include "./ParseTree.hpp"
-#include <iostream>
 
 //---------------------------------------------------------------------------
 namespace pljit::parse {

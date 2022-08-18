@@ -6,8 +6,8 @@
 #define PLJIT_AST_HPP
 
 #include "./ASTVisitor.hpp"
-#include "pljit/SymbolTable.hpp"
-#include "pljit/EvaluationContext.hpp"
+#include "../SymbolTable.hpp"
+#include "../EvaluationContext.hpp"
 #include <memory>
 #include <optional>
 #include <vector>

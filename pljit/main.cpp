@@ -16,7 +16,7 @@ void print(const pljit::lex::Token& token) {
             cout << "EMPTY" << endl;
             break;
         default:
-            cout << "'" << token.reference().content() << "'" << endl;
+            cout << "'" << *token.reference() << "'" << endl;
     }
 }
 

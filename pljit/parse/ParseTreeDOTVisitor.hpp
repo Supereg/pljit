@@ -5,7 +5,7 @@
 #ifndef PLJIT_PARSETREEDOTVISITOR_HPP
 #define PLJIT_PARSETREEDOTVISITOR_HPP
 #include "./ParseTreeVisitor.hpp"
-#include "pljit/util/GenericDOTVisitor.hpp"
+#include "../util/GenericDOTVisitor.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit::parse {

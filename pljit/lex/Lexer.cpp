@@ -78,14 +78,14 @@ SourceCodeError Token::makeError(ErrorType errorType, std::string_view message) 
 }
 
 std::string_view Token::content() const {
-    return reference().content();
+    return *reference();
 }
 
 bool Token::is(Token::Type token_type, std::string_view content) const {
-    return type == token_type && source_code.content() == content;
+    return type == token_type && *source_code == content;
 }
 
-Token::ExtendResult Token::extend(SourceCodeManagement::iterator character) {
+Token::ExtendResult Token::extend(SourceIterator character) {
     Type next_type = typeOfCharacter(*character);
     if (next_type == Type::EMPTY) {
         // encountered unknown character type!
@@ -108,11 +108,11 @@ Token::ExtendResult Token::extend(SourceCodeManagement::iterator character) {
         return ExtendResult::END_OF_TOKEN;
     } else if (type == Type::OPERATOR) {
         // operator is special, as we have the `:=` operator of length 2.
-        if (source_code.content().size() >= 2) {
+        if (source_code->size() >= 2) {
             return ExtendResult::END_OF_TOKEN;
         }
 
-        if (!(source_code.content() == ":" && *character == '=')) {
+        if (!(*source_code == ":" && *character == '=')) {
             // we only allow to extend if current operator character is `:` and we want to extend with `=` to form `:=`.
             // While we could build a more abstract solution, capable of handling multiple multi character operators and
             // not dealing with magic constants, we don't (for now). We only need to handle a single character that is special in this way.
@@ -125,7 +125,7 @@ Token::ExtendResult Token::extend(SourceCodeManagement::iterator character) {
 }
 
 void Token::finalize() {
-    if (type == Type::IDENTIFIER && isKeyword(source_code.content())) {
+    if (type == Type::IDENTIFIER && isKeyword(*source_code)) {
         type = Type::KEYWORD;
     }
 }
@@ -148,7 +148,7 @@ bool Lexer::endOfStream() {
     return current_position == management->end();
 }
 
-SourceCodeManagement::iterator Lexer::cur_position() const {
+SourceIterator Lexer::cur_position() const {
     return current_position;
 }
 

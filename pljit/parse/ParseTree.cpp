@@ -21,7 +21,7 @@ GenericTerminal::GenericTerminal() = default;
 GenericTerminal::GenericTerminal(code::SourceCodeReference src_reference) : Symbol(src_reference) {}
 
 std::string_view GenericTerminal::value() const {
-    return src_reference.content();
+    return *src_reference;
 }
 
 void GenericTerminal::accept(ParseTreeVisitor& visitor) const {
@@ -31,7 +31,7 @@ void GenericTerminal::accept(ParseTreeVisitor& visitor) const {
 Identifier::Identifier() = default;
 
 std::string_view Identifier::value() const {
-    return src_reference.content();
+    return *src_reference;
 }
 
 void Identifier::accept(ParseTreeVisitor& visitor) const {
@@ -43,10 +43,6 @@ Literal::Literal(code::SourceCodeReference src_reference, long long int literalV
 
 long long Literal::value() const {
     return literalValue;
-}
-
-std::string_view Literal::string_value() const { // TODO is this used?
-    return src_reference.content();
 }
 
 void Literal::accept(ParseTreeVisitor& visitor) const {

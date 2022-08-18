@@ -4,123 +4,46 @@
 
 #include "./SourceCodeManagement.hpp"
 #include <cassert>
-#include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit::code { // TODO maybe used this as a separate library?
+namespace pljit::code {
 //---------------------------------------------------------------------------
-SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
-    : source_code(source_code),
-      source_code_view(this->source_code){
-}
-
-SourceCodeManagement::iterator SourceCodeManagement::begin() const {
-    return { this, source_code_view.begin() };
-}
-
-SourceCodeManagement::iterator SourceCodeManagement::end() const {
-    return { this, source_code_view.end() };
-}
-
-std::string_view SourceCodeManagement::content() const {
-    return source_code_view;
-}
-
-void SourceCodeManagement::print_error(
-    ErrorType type,
-    std::string_view message,
-    const SourceCodeReference& reference
-) const {
-    unsigned column = 0;
-    unsigned line = 1;
-
-    {
-        std::string_view::iterator iterator = reference.content().begin();
-        assert(iterator >= source_code_view.begin() && iterator <= source_code_view.end() && "Illegal range!");
-
-        while(--iterator >= source_code_view.begin()) {
-            if (*iterator == '\n') {
-                break;
-            }
-
-            ++column;
-        }
-
-        for (; iterator >= source_code_view.begin(); --iterator) {
-            if (*iterator == '\n') {
-                ++line;
-            }
-        }
-    }
-
-    std::string_view name; // TODO move switch to method!
-    switch (type) {
-        case ErrorType::ERROR:
-            name = "error";
-            break;
-        case ErrorType::NOTE:
-            name = "note";
-            break;
-    }
-
-    // PRINT ERROR LINE
-    std::cout << line << ':' << (column + 1) << ": " << name << ": " << message << std::endl;
-
-    // PRINT CODE LINE
-    std::string_view::iterator message_iterator_begin = reference.content().begin() - column;
-    std::string_view::iterator message_iterator_end = reference.content().begin();
-    for (; *message_iterator_end != '\n' && message_iterator_end != source_code_view.end(); ++message_iterator_end) {}
-
-    std::string_view code_line{message_iterator_begin, message_iterator_end};
-    std::cout << code_line << std::endl;
-
-    // PRINT ERROR INDICATOR
-    for (unsigned i = column; i > 0; --i) {
-        std::cout << ' '; // TODO column count is off when using \t tabs!!!
-    }
-    std::cout << '^';
-    for (unsigned i = 0; i < reference.content().size() - 1; ++i) {
-        std::cout << "~";
-    }
-    std::cout << std::endl;
-}
-//---------------------------------------------------------------------------
-SourceCodeManagement::iterator::iterator(const SourceCodeManagement* management, std::string_view::iterator view_iterator)
+SourceIterator::SourceIterator(const SourceCodeManagement* management, std::string_view::iterator view_iterator)
     : management(management), view_iterator(view_iterator) {}
 
-SourceCodeManagement::iterator::iterator() : management(nullptr), view_iterator() {}
+SourceIterator::SourceIterator() : management(nullptr), view_iterator() {}
 
-bool SourceCodeManagement::iterator::operator==(const SourceCodeManagement::iterator& other) const {
+bool SourceIterator::operator==(const SourceIterator& other) const {
     return management == other.management && view_iterator == other.view_iterator;
 }
 
-SourceCodeManagement::iterator& SourceCodeManagement::iterator::operator++() {
+SourceIterator& SourceIterator::operator++() {
     ++view_iterator;
     return *this;
 }
 
-SourceCodeManagement::iterator SourceCodeManagement::iterator::operator++(int) {
-    iterator copy{*this};
+SourceIterator SourceIterator::operator++(int) {
+    SourceIterator copy{*this};
     operator++();
     return copy;
 }
 
-SourceCodeManagement::iterator& SourceCodeManagement::iterator::operator--() {
+SourceIterator& SourceIterator::operator--() {
     --view_iterator;
     return *this;
 }
 
-SourceCodeManagement::iterator SourceCodeManagement::iterator::operator--(int) {
-    iterator copy{*this};
+SourceIterator SourceIterator::operator--(int) {
+    SourceIterator copy{*this};
     operator--();
     return copy;
 }
 
-SourceCodeManagement::iterator::reference SourceCodeManagement::iterator::operator*() const {
+SourceIterator::reference SourceIterator::operator*() const {
     return *view_iterator;
 }
 
-SourceCodeReference SourceCodeManagement::iterator::codeReference() const {
+SourceCodeReference SourceIterator::codeReference() const {
     std::string_view::iterator begin = &operator*();
     std::string_view::iterator end = begin;
     ++end;
@@ -128,66 +51,44 @@ SourceCodeReference SourceCodeManagement::iterator::codeReference() const {
     return { management, {begin, end}};
 }
 //---------------------------------------------------------------------------
-SourceCodeReference::SourceCodeReference()
-    : management(nullptr), string_content() {}
-// TODO ensure we handle empty references properly!
-
-SourceCodeReference::SourceCodeReference(const SourceCodeManagement* management, std::string_view string_content)
-    : management(management), string_content(string_content) {
+SourceCodeManagement::SourceCodeManagement(std::string&& source_code)
+    : source_code(source_code),
+      source_code_view(this->source_code){
 }
 
-std::string_view SourceCodeReference::content() const {
-    assert(management != nullptr);
-    return string_content;
+SourceIterator SourceCodeManagement::begin() const {
+    return { this, source_code_view.begin() };
 }
 
-void SourceCodeReference::extend(int amount) {
-    assert(management != nullptr);
-    assert(string_content.end() + amount <= &(*management->end()));
-
-    string_content = { string_content.data(), string_content.size() + amount };
+SourceIterator SourceCodeManagement::end() const {
+    return { this, source_code_view.end() };
 }
 
-SourceCodeError SourceCodeReference::makeError(ErrorType errorType, std::string_view message) const {
-    return { errorType, message, *this };
+std::string_view SourceCodeManagement::content() const {
+    return source_code_view;
 }
 
-bool SourceCodeReference::operator==(const SourceCodeReference& rhs) const {
-    return management == rhs.management &&
-        string_content == rhs.string_content;
-}
-//---------------------------------------------------------------------------
-SourceCodeError::SourceCodeError(ErrorType errorType, std::string_view errorMessage, SourceCodeReference sourceCodeReference)
-    : errorType(errorType), errorMessage(errorMessage), sourceCodeReference(sourceCodeReference) {}
+CodePosition SourceCodeManagement::getPosition(const SourceCodeReference& reference) const {
+    unsigned column = 0;
+    unsigned line = 1;
 
-ErrorType SourceCodeError::type() const {
-    return errorType;
-}
+    std::string_view::iterator iterator = reference->begin();
+    assert(iterator >= source_code_view.begin() && iterator <= source_code_view.end() && "Illegal range!");
 
-std::string_view SourceCodeError::message() const {
-    return errorMessage;
-}
+    while(--iterator >= source_code_view.begin()) {
+        if (*iterator == '\n') {
+            break;
+        }
 
-const SourceCodeReference& SourceCodeError::reference() const {
-    return sourceCodeReference;
-}
-
-SourceCodeError& SourceCodeError::withCause(SourceCodeError&& error_cause) {
-    causes.emplace_back(error_cause);
-    return *this;
-}
-
-void SourceCodeError::printCompilerError() const {
-    sourceCodeReference.management->print_error(errorType, errorMessage, sourceCodeReference);
-    for (auto& cause: causes) {
-        cause.printCompilerError();
+        ++column;
     }
-}
 
-bool SourceCodeError::operator==(const SourceCodeError& rhs) const {
-    return errorType == rhs.errorType &&
-        errorMessage == rhs.errorMessage &&
-        sourceCodeReference == rhs.sourceCodeReference;
+    for (; iterator >= source_code_view.begin(); --iterator) {
+        if (*iterator == '\n') {
+            ++line;
+        }
+    }
+    return { line, column + 1 };
 }
 //---------------------------------------------------------------------------
 } // namespace pljit::code

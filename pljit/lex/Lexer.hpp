@@ -108,10 +108,10 @@ class Token {
 
     /**
      * Extends this Token with another character.
-     * @param character An iterator pointing to a character which should be added to the Token.
+     * @param character An SourceIterator pointing to a character which should be added to the Token.
      * @return Returns the result of the extend operation.
      */
-    ExtendResult extend(code::SourceCodeManagement::iterator character);
+    ExtendResult extend(code::SourceIterator character);
 
     void finalize();
 
@@ -120,7 +120,7 @@ class Token {
 //---------------------------------------------------------------------------
 class Lexer {
     const code::SourceCodeManagement* management;
-    code::SourceCodeManagement::iterator current_position;
+    code::SourceIterator current_position;
 
     /// Temporary variable to store Result instances that were peeked but not yet consumed!
     std::optional<Result<Token>> next_result;
@@ -131,7 +131,7 @@ class Lexer {
 
     bool endOfStream();
 
-    code::SourceCodeManagement::iterator cur_position() const;
+    code::SourceIterator cur_position() const;
 
     /**
      * Peeks the next `Token`.

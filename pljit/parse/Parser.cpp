@@ -3,7 +3,7 @@
 //
 
 #include "./Parser.hpp"
-#include "pljit/lang.hpp"
+#include "../lang.hpp"
 #include <charconv>
 
 //---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ std::optional<code::SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpre
 
         if (auto error = parseGenericTerminal(close, lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
             error.has_value()) {
-            return error->withCause(open.reference().makeError(code::ErrorType::NOTE, "opening bracket here"));
+            return error->attachCause(open.reference().makeError(code::ErrorType::NOTE, "opening bracket here"));
         }
 
         destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
@@ -515,7 +515,7 @@ std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) 
         return result->makeError(code::ErrorType::ERROR, "Expected literal!");
     }
 
-    std::string_view literal = result->reference().content();
+    std::string_view literal = *result->reference();
     long long value;
 
     auto conversion = std::from_chars(literal.data(), literal.data() + literal.size(), value);

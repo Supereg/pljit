@@ -5,7 +5,7 @@
 #ifndef PLJIT_PARSER_HPP
 #define PLJIT_PARSER_HPP
 
-#include "../code/SourceCodeManagement.hpp"
+#include "../code/SourceCode.hpp"
 #include "../lex/Lexer.hpp"
 #include "../util/Result.hpp"
 #include "./ParseTree.hpp"

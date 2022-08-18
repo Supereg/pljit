@@ -5,7 +5,7 @@
 #include "./ASTBuilder.hpp"
 #include "./AST.hpp"
 #include "pljit/parse/ParseTree.hpp"
-#include "pljit/code/SourceCodeManagement.hpp"
+#include "pljit/code/SourceCode.hpp"
 #include "pljit/lang.hpp"
 
 //---------------------------------------------------------------------------

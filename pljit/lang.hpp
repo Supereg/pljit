@@ -5,11 +5,6 @@
 #ifndef PLJIT_LANG_HPP
 #define PLJIT_LANG_HPP
 
-#include "pljit/code/SourceCodeManagement.hpp"
-#include "pljit/util/Result.hpp"
-#include <cassert>
-#include <optional>
-
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------

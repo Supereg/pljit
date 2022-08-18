@@ -5,7 +5,7 @@
 #ifndef PLJIT_PARSETREE_HPP
 #define PLJIT_PARSETREE_HPP
 
-#include "../code/SourceCodeManagement.hpp"
+#include "../code/SourceCode.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -62,7 +62,6 @@ class Literal : public Symbol {
     Literal(code::SourceCodeReference src_reference, long long literalValue);
 
     long long value() const;
-    std::string_view string_value() const;
 
     void accept(ParseTreeVisitor& visitor) const override;
 };

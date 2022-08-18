@@ -5,7 +5,7 @@
 using namespace pljit::code;
 //---------------------------------------------------------------------------
 TEST(SourceCodeManagement, testIteratorConcept) {
-    ASSERT_TRUE(std::bidirectional_iterator<SourceCodeManagement::iterator>);
+    ASSERT_TRUE(std::bidirectional_iterator<SourceIterator>);
 }
 
 TEST(SourceCodeManagement, testProgramStorage) {
@@ -31,10 +31,10 @@ TEST(SourceCodeManagement, testSourceCodeIterator) {
     ASSERT_EQ(*iterator, 'H');
 
     auto reference = iterator.codeReference();
-    ASSERT_EQ(reference.content(), "H");
+    ASSERT_EQ(*reference, "H");
 
-    ASSERT_NE(iterator, SourceCodeManagement::iterator());
-    ASSERT_EQ(SourceCodeManagement::iterator(), SourceCodeManagement::iterator());
+    ASSERT_NE(iterator, SourceIterator());
+    ASSERT_EQ(SourceIterator(), SourceIterator());
 }
 
 TEST(SourceCodeManagement, testSourceCodeError) {
@@ -46,9 +46,11 @@ TEST(SourceCodeManagement, testSourceCodeError) {
 
     SourceCodeError error = reference.makeError(ErrorType::NOTE, "some error!");
 
-    ASSERT_EQ(error.reference().content(), "Hello world");
+    ASSERT_EQ(*error.reference(), "Hello world");
     ASSERT_EQ(error.message(), "some error!");
     ASSERT_EQ(error.type(), ErrorType::NOTE);
+    ASSERT_EQ(error.position(), CodePosition(1, 1));
+    ASSERT_TRUE(error.attachedCauses().empty());
 
     CaptureCOut capture;
 
@@ -112,4 +114,26 @@ TEST(SourceCodeManagement, testErrorAtIteratorEndNewLine) {
                              "            ^\n");
 }
 
-// TODO errors with \t character!
+TEST(SourceCodeManagement, testErrorInLineWithTabs) {
+    SourceCodeManagement management{ "\t \tsome program;\n" };
+
+    auto iterator = management.begin();
+    for (unsigned i = 0; i < 6; ++i) {
+        iterator++;
+    }
+
+    SourceCodeError error{
+        pljit::code::ErrorType::ERROR,
+        "ERROR!",
+        iterator.codeReference()
+    };
+
+    CaptureCOut capture;
+
+    error.printCompilerError();
+    EXPECT_EQ(capture.str(), "1:7: error: ERROR!\n"
+                             "\t \tsome program;\n"
+                             "\t \t   ^\n");
+}
+
+// TODO test error handling of multiline errors!
