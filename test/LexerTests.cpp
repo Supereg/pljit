@@ -1,21 +1,12 @@
 #include "pljit/code/SourceCodeManagement.hpp"
 #include "pljit/lang.hpp"
 #include "pljit/lex/Lexer.hpp"
-#include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
+#include "./utils/assert_macros.hpp"
 //---------------------------------------------------------------------------
 using namespace pljit;
 using namespace pljit::code;
 using namespace pljit::lex;
-//---------------------------------------------------------------------------
-#define ASSERT_TOKEN(result, type, exp_content) \
-    ASSERT_TRUE((result).success()); \
-    EXPECT_EQ((result).value().getType(), (type)); \
-    ASSERT_EQ(*(result).value().reference(), (exp_content))
-
-#define ASSERT_NEXT_TOKEN(lexer, result, type, exp_content) \
-    (result) = (lexer).consume_next(); \
-    ASSERT_TOKEN(result, type, exp_content)
 //---------------------------------------------------------------------------
 TEST(Lexer, testBasicTokens) {
     std::string program = "PARAM width, height, depth;";
@@ -28,17 +19,22 @@ TEST(Lexer, testBasicTokens) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::KEYWORD, Keyword::PARAM);
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::IDENTIFIER, "width");
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::SEPARATOR, Separator::COMMA);
+
+    ASSERT_EQ(*lexer.cur_position(), 'h');
+
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::IDENTIFIER, "height");
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::SEPARATOR, Separator::COMMA);
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::IDENTIFIER, "depth");
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::SEPARATOR, Separator::SEMICOLON);
 
     ASSERT_TRUE(lexer.endOfStream());
+
+    // accessing Lexer after end of stream is considered an error!
+    result = lexer.consume_next();
+    ASSERT_SRC_ERROR(result, CodePosition(1, 28), "unexpected end of stream!", "");
 }
 
 TEST(Lexer, testIllegalToken) {
-    CaptureCOut capture; // TODO remove requirement for capture!
-
     std::string program = "PARAM width? height";
     SourceCodeManagement management{ std::move(program) };
     Lexer lexer{ management };
@@ -48,11 +44,7 @@ TEST(Lexer, testIllegalToken) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::KEYWORD, Keyword::PARAM);
 
     result = lexer.consume_next();
-    ASSERT_TRUE(result.failure());
-    result.error().printCompilerError();
-    EXPECT_EQ(capture.str(), "1:12: error: unexpected character!\n"
-                             "PARAM width? height\n"
-                             "           ^\n");
+    ASSERT_SRC_ERROR(result, CodePosition(1, 12), "unexpected character!", "?");
 }
 
 TEST(Lexer, testVar) {
@@ -312,15 +304,6 @@ TEST(Lexer, testCharacterAfterProgramTerminator) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::SEPARATOR, Separator::END_OF_PROGRAM);
 
     ASSERT_FALSE(lexer.endOfStream());
-
-    /* TODO test this in the Parser!
-    result = lexer.consume_next();
-    ASSERT_TRUE(result.failure());
-    result.error().printCompilerError();
-    EXPECT_EQ(capture.str(), "4:1: error: unexpected character after end of program terminator!\n"
-                             "RETURN 1\n"
-                             "^\n");
-     */
 }
 
 TEST(Lexer, testWhitespacesAfterTerminator) {

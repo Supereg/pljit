@@ -22,10 +22,10 @@ static Result<Function> buildAST(const SourceCodeManagement& management) {
     Parser parser{ lexer };
 
     Result<FunctionDefinition> program = parser.parse_program();
-    if (program.failure()) {
+    if (program.isFailure()) {
         program.error().printCompilerError();
     }
-    assert(program.success() && "Unexpected parsing error!");
+    assert(program.isSuccess() && "Unexpected parsing error!");
 
     ASTBuilder builder;
     return builder.analyzeFunction(*program);
@@ -40,10 +40,10 @@ TEST(ASTBuilder, testExampleProgram) {
                                     "  RETURN density * volume\n"
                                     "END."};
     Result<Function> function = buildAST(management);
-    if (function.failure()) {
+    if (function.isFailure()) {
         function.error().printCompilerError();
     }
-    ASSERT_TRUE(function.success());
+    ASSERT_TRUE(function.isSuccess());
 
     DOTVisitor visitor;
     CaptureCOut capture;
@@ -104,7 +104,7 @@ TEST(ASTBuilder, testMissingReturn) {
                                     "  test := 0\n"
                                     "END."};
     Result<Function> function = buildAST(management);
-    ASSERT_TRUE(function.failure());
+    ASSERT_TRUE(function.isFailure());
 
     CaptureCOut capture;
     function.error().printCompilerError();
@@ -126,7 +126,7 @@ TEST(ASTBuilder, testUndeclaredIdentifierUsage) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -146,7 +146,7 @@ TEST(ASTBuilder, testUndeclaredIdentifierUsage) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -167,7 +167,7 @@ TEST(ASTBuilder, testUndeclaredIdentifierUsage) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -189,7 +189,7 @@ TEST(ASTBuilder, testAssigningConstant) {
                                     "END."};
 
     Result<Function> function = buildAST(management);
-    ASSERT_TRUE(function.failure());
+    ASSERT_TRUE(function.isFailure());
 
     CaptureCOut capture;
     function.error().printCompilerError();
@@ -210,7 +210,7 @@ TEST(ASTBuilder, testIdentifierRedeclaration) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -234,7 +234,7 @@ TEST(ASTBuilder, testIdentifierRedeclaration) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -258,7 +258,7 @@ TEST(ASTBuilder, testIdentifierRedeclaration) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -283,7 +283,7 @@ TEST(ASTBuilder, testUninitializedVariableUsage) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();
@@ -304,7 +304,7 @@ TEST(ASTBuilder, testUninitializedVariableUsage) {
                                         "END."};
 
         Result<Function> function = buildAST(management);
-        ASSERT_TRUE(function.failure());
+        ASSERT_TRUE(function.isFailure());
 
         CaptureCOut capture;
         function.error().printCompilerError();

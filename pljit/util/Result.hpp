@@ -12,6 +12,10 @@
 
 namespace pljit {
 //---------------------------------------------------------------------------
+/**
+ * Result type describing some result which might fail with an `SourceCodeError`.
+ * @tparam T - Some result type.
+ */
 template <typename T>
 class Result {
     std::optional<code::SourceCodeError> source_error;
@@ -19,22 +23,29 @@ class Result {
 
     public:
     Result() requires std::default_initializable<T>;
-    Result(T result) requires std::move_constructible<T>;
-    Result(code::SourceCodeError error) requires std::default_initializable<T>;
+    Result(T result) requires std::move_constructible<T>; // NOLINT(google-explicit-constructor)
+    Result(code::SourceCodeError error) requires std::default_initializable<T>; // NOLINT(google-explicit-constructor)
 
+    /**
+     * @return Returns the value of the Result (only if a value is present).
+     */
     const T& value() const;
-
+    /**
+     * @return Releases the value of the Result (only if a value is present).
+     */
     T&& release() requires std::movable<T>;
-
+    /**
+     * @return Returns the error of the Result (only if an error is present).
+     */
     code::SourceCodeError error() const;
 
-    // TODO prepend with "is" keyword! Both!
+    /**
+     * Implicit conversion to bool. Returns true if the Result has a value.
+     */
+    operator bool() const; // NOLINT(google-explicit-constructor)
 
-    // TODO bool implicit conversion
-    // TODO * and -> operator!
-    bool success() const;
-
-    bool failure() const;
+    bool isSuccess() const;
+    bool isFailure() const;
 
     const T& operator*() const;
     const T* operator->() const;
@@ -67,12 +78,17 @@ code::SourceCodeError Result<T>::error() const {
 }
 
 template <typename T>
-bool Result<T>::success() const {
+Result<T>::operator bool() const {
     return !source_error.has_value();
 }
 
 template <typename T>
-bool Result<T>::failure() const {
+bool Result<T>::isSuccess() const {
+    return !source_error.has_value();
+}
+
+template <typename T>
+bool Result<T>::isFailure() const {
     return source_error.has_value();
 }
 

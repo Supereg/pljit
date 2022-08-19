@@ -5,6 +5,7 @@
 #include "./Lexer.hpp"
 #include "../lang.hpp"
 #include <cassert>
+#include <cctype>
 
 //---------------------------------------------------------------------------
 namespace pljit {
@@ -13,52 +14,56 @@ using namespace code;
 //---------------------------------------------------------------------------
 namespace lex {
 //---------------------------------------------------------------------------
-Token::Token() : type(Type::EMPTY), source_code() {}
-
-bool Token::isWhitespace(char character) {
+namespace {
+//---------------------------------------------------------------------------
+bool isWhitespace(char character) {
     return character == ' ' || character == '\n' || character == '\t';
 }
 
-bool Token::isSeparator(char character) {
+bool isSeparator(char character) {
     return character == ',' || character == ';' || character == '.';
 }
 
-bool Token::isAlphanumeric(char character) {
-    return std::isalpha(character);
+bool isAlphanumeric(char character) {
+    return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
 }
 
-bool Token::isIntegerLiteral(char character) {
+bool isIntegerLiteral(char character) {
     return std::isdigit(character);
 }
 
-bool Token::isParenthesis(char character) {
+bool isParenthesis(char character) {
     return character == '(' || character == ')';
 }
 
-bool Token::isOperator(char character) {
+bool isOperator(char character) {
     return character == '+' || character == '-' || character == '*' || character == '/' || character == '=' || character == ':';
 }
 
-bool Token::isKeyword(std::string_view view) {
+bool isKeyword(std::string_view view) {
     return view == Keyword::PARAM || view == Keyword::VAR || view == Keyword::CONST || view == Keyword::BEGIN || view == Keyword::END || view == Keyword::RETURN;
 }
 
-Token::Type Token::typeOfCharacter(char character) {
+Token::Type typeOfCharacter(char character) {
     if (isAlphanumeric(character)) {
         // Type::KEYWORD is handled in `Token::finalize`.
-        return Type::IDENTIFIER;
+        return Token::Type::IDENTIFIER;
     } else if (isOperator(character)) {
-        return Type::OPERATOR;
+        return Token::Type::OPERATOR;
     } else if (isSeparator(character)) {
-        return Type::SEPARATOR;
+        return Token::Type::SEPARATOR;
     } else if (isIntegerLiteral(character)) {
-        return Type::LITERAL;
+        return Token::Type::LITERAL;
     } else if (isParenthesis(character)) {
-        return Type::PARENTHESIS;
+        return Token::Type::PARENTHESIS;
     } else {
-        return Type::EMPTY;
+        return Token::Type::EMPTY;
     }
 }
+//---------------------------------------------------------------------------
+} // namespace
+//---------------------------------------------------------------------------
+Token::Token() : type(Type::EMPTY), source_code() {}
 
 bool Token::isEmpty() const {
     return type == Type::EMPTY;
@@ -75,10 +80,6 @@ SourceCodeReference Token::reference() const {
 
 SourceCodeError Token::makeError(ErrorType errorType, std::string_view message) const {
     return reference().makeError(errorType, message);
-}
-
-std::string_view Token::content() const {
-    return *reference();
 }
 
 bool Token::is(Token::Type token_type, std::string_view content) const {
@@ -141,7 +142,7 @@ Lexer::Lexer(const SourceCodeManagement& management)
 bool Lexer::endOfStream() {
     // might be the case that there are more than one whitespaces after the `.` terminator.
     // We want to report endOfStream as true, even when there are only whitespaces remaining.
-    while (current_position != management->end() && Token::isWhitespace(*current_position)) {
+    while (current_position != management->end() && isWhitespace(*current_position)) {
         ++current_position;
     }
 
@@ -170,7 +171,7 @@ Result<Token> Lexer::consume_next() {
     }
 
     Result<Token> result = next();
-    if (result.failure()) {
+    if (!result) {
         returnedWithError = true;
     }
     return result;
@@ -178,12 +179,8 @@ Result<Token> Lexer::consume_next() {
 
 void Lexer::consume(const Token& result) {
     assert(next_result.has_value() && "Tried to consume Token when nothing was peeked!");
-    assert(next_result->success() && "Tried to consume Token in erroneous state!");
+    assert(next_result && "Tried to consume Token in erroneous state!");
     assert(next_result->value() == result && "Tried consuming unexpected Token!");
-
-    if (next_result->failure()) {
-        returnedWithError = true;
-    }
 
     next_result.reset();
 }
@@ -194,7 +191,7 @@ Result<Token> Lexer::next() {
     Token token; // creates an `EMPTY` token.
 
     for (; current_position != management->end(); ++current_position) {
-        if (Token::isWhitespace(*current_position)) {
+        if (isWhitespace(*current_position)) {
             if (token.isEmpty()) {
                 continue; // we skip whitespaces till we find something!
             }

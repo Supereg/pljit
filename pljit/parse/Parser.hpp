@@ -18,36 +18,34 @@ class Parser {
     lex::Lexer* lexer;
 
     public:
-    // TODO make constructivle from SRCMNGMT?
     explicit Parser(lex::Lexer& lexer);
 
     Result<FunctionDefinition> parse_program();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseFunctionDefinition(FunctionDefinition& destination);
+    Result<FunctionDefinition> parseFunctionDefinition();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseParameterDeclarations(std::optional<ParameterDeclarations>& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseVariableDeclarations(std::optional<VariableDeclarations>& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseConstantDeclarations(std::optional<ConstantDeclarations>& destination);
+    Result<ParameterDeclarations> parseParameterDeclarations();
+    Result<VariableDeclarations> parseVariableDeclarations();
+    Result<ConstantDeclarations> parseConstantDeclarations();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseDeclaratorList(DeclaratorList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclaratorList(InitDeclaratorList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseInitDeclarator(InitDeclarator& destination);
+    Result<DeclaratorList> parseDeclaratorList();
+    Result<InitDeclaratorList> parseInitDeclaratorList();
+    Result<InitDeclarator> parseInitDeclarator();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseCompoundStatement(CompoundStatement& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseStatementList(StatementList& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseStatement(Statement& destination);
+    Result<CompoundStatement> parseCompoundStatement();
+    Result<StatementList> parseStatementList();
+    Result<Statement> parseStatement();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseAssignmentExpression(AssignmentExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseAdditiveExpression(AdditiveExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseMultiplicativeExpression(MultiplicativeExpression& destination);
+    Result<AssignmentExpression> parseAssignmentExpression();
+    Result<AdditiveExpression> parseAdditiveExpression();
+    Result<MultiplicativeExpression> parseMultiplicativeExpression();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseUnaryExpression(UnaryExpression& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parsePrimaryExpression(PrimaryExpression& destination);
+    Result<UnaryExpression> parseUnaryExpression();
+    Result<PrimaryExpression> parsePrimaryExpression();
 
-    [[nodiscard]] std::optional<code::SourceCodeError> parseIdentifier(Identifier& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseLiteral(Literal& destination);
-    [[nodiscard]] std::optional<code::SourceCodeError> parseGenericTerminal(
-        GenericTerminal& destination,
+    Result<Identifier> parseIdentifier();
+    Result<Literal> parseLiteral();
+    Result<GenericTerminal> parseGenericTerminal(
         lex::Token::Type expected_type,
         std::string_view expected_content,
         std::string_view potential_error_message

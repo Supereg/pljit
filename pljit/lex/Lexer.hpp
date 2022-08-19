@@ -7,13 +7,16 @@
 
 #include "../code/SourceCodeManagement.hpp"
 #include "../util/Result.hpp"
-#include <cassert>
 #include <optional>
 
 //---------------------------------------------------------------------------
 namespace pljit::lex {
 //---------------------------------------------------------------------------
+class Lexer;
+//---------------------------------------------------------------------------
 class Token {
+    friend class Lexer; // access to construction methods.
+
     public:
     /// Defines the type of the token.
     enum class Type {
@@ -52,21 +55,6 @@ class Token {
     code::SourceCodeReference source_code;
 
     public:
-
-    // TODO docs!
-
-    // TODO placement? (lang or src namespace?)
-    static bool isWhitespace(char character);
-    static bool isSeparator(char character);
-    static bool isAlphanumeric(char character);
-    static bool isIntegerLiteral(char character);
-    static bool isParenthesis(char character);
-    static bool isOperator(char character);
-
-    static bool isKeyword(std::string_view view);
-
-    static Type typeOfCharacter(char character);
-
     /// Creates an empty Token. `Type` is set to `EMPTY` and the source code is not accessible.
     Token();
 
@@ -75,7 +63,9 @@ class Token {
      * @return Returns `true` if the `Token` is an empty token.
      */
     bool isEmpty() const;
-
+    /**
+     * @return Returns the type of the Token!
+     */
     Type getType() const;
 
     /**
@@ -93,12 +83,6 @@ class Token {
     [[nodiscard]] code::SourceCodeError makeError(code::ErrorType errorType, std::string_view message) const;
 
     /**
-     * Access to the Token's source code content.
-     * @return `string_view` of the source code content.
-     */
-    std::string_view content() const;
-
-    /**
      * Shorthand version to check the {@class Type} and Token content of the Token.
      * @param type The {@class Type}.
      * @param content The string representation of the Token content.
@@ -106,6 +90,9 @@ class Token {
      */
     bool is(Type token_type, std::string_view content) const;
 
+    bool operator==(const Token& rhs) const;
+
+    private:
     /**
      * Extends this Token with another character.
      * @param character An SourceIterator pointing to a character which should be added to the Token.
@@ -113,9 +100,12 @@ class Token {
      */
     ExtendResult extend(code::SourceIterator character);
 
+    /**
+     * Finalizes the Token. This must be called at the end of construction.
+     * For example, it checks if a captured IDENTIFIER is a KEYWORD and updates the token type accordingly.
+     */
     void finalize();
 
-    bool operator==(const Token& rhs) const;
 };
 //---------------------------------------------------------------------------
 class Lexer {
@@ -155,6 +145,9 @@ class Lexer {
     void consume(const Token& result);
 
     private:
+    /**
+     * Internal implementation to derive the next Token.
+     */
     Result<Token> next();
 };
 //---------------------------------------------------------------------------

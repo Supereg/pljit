@@ -9,9 +9,6 @@
 #include "../SymbolTable.hpp"
 #include <memory>
 
-// TODO search for unused stuff!
-// TODO revisit all header includes!
-
 //---------------------------------------------------------------------------
 namespace pljit::ast {
 //---------------------------------------------------------------------------

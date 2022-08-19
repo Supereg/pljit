@@ -26,10 +26,10 @@ static Result<Function> buildAST(const SourceCodeManagement& management) {
     Parser parser{ lexer };
 
     Result<FunctionDefinition> program = parser.parse_program();
-    if (program.failure()) {
+    if (program.isFailure()) {
         program.error().printCompilerError();
     }
-    assert(program.success() && "Unexpected parsing error!");
+    assert(program && "Unexpected parsing error!");
 
     ASTBuilder builder;
     return builder.analyzeFunction(*program);
@@ -46,7 +46,7 @@ TEST(ASTOptimization, testDeadCodeElminiation) {
                                     "END."};
 
     Result<Function> result = buildAST(management);
-    ASSERT_TRUE(result.success());
+    ASSERT_TRUE(result);
 
     Function function = result.release();
 
@@ -98,10 +98,10 @@ TEST(ASTOptimization, testConstantPropagation) {
                                     "END."};
 
     Result<Function> result = buildAST(management);
-    if (result.failure()) {
+    if (result.isFailure()) {
         result.error().printCompilerError();
     }
-    ASSERT_TRUE(result.success());
+    ASSERT_TRUE(result.isSuccess());
 
     Function function = result.release();
 

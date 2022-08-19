@@ -47,6 +47,12 @@ SourceCodeReference::SourceCodeReference(const SourceCodeManagement* management,
     : management(management), string_content(string_content) {
 }
 
+SourceCodeReference::SourceCodeReference(const SourceCodeReference& start, const SourceCodeReference& end)
+    : management(start.management), string_content(start->begin(), end->end()) {
+    assert(start.management == end.management && "Used SourceCodeReference fro, two different managements!");
+    assert(start->begin() < end->begin() && "Confused order constructing SourceCodeReference!");
+}
+
 std::string_view SourceCodeReference::operator*() const {
     assert(management != nullptr && "Can't access content of an empty SourceCodeReference!");
     return string_content;
@@ -136,7 +142,7 @@ void SourceCodeError::printCompilerError() const {
         }
     }
     std::cout << '^';
-    for (unsigned i = 0; i < codeReference->size() - 1; ++i) {
+    for (unsigned i = 1; i < codeReference->size(); ++i) {
         std::cout << "~";
     }
     std::cout << std::endl;

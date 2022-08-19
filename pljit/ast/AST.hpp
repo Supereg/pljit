@@ -245,11 +245,7 @@ class ConstDeclaration: public Declaration {
     std::vector<std::tuple<const Variable&, const Literal&>> getConstDeclarations() const;
 };
 
-// TODO one generic `AST` node file?
 class Function: public Node {
-    // TODO really friends?
-    friend class ASTBuilder;
-
     std::optional<ParamDeclaration> paramDeclaration;
     std::optional<VarDeclaration> varDeclaration;
     std::optional<ConstDeclaration> constDeclaration;
@@ -261,6 +257,13 @@ class Function: public Node {
 
     public:
     Function();
+    Function(std::optional<ParamDeclaration> paramDeclaration,
+             std::optional<VarDeclaration> varDeclaration,
+             std::optional<ConstDeclaration> constDeclaration,
+             std::vector<std::unique_ptr<Statement>> statements,
+             code::SourceCodeReference beginReference,
+             size_t totalSymbols
+     );
 
     // Move Construction
     Function(Function&& other) noexcept = default;

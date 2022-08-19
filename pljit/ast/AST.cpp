@@ -103,7 +103,7 @@ void UnaryMinus::accept(ASTVisitor& visitor) const {
 
 Result<long long> UnaryMinus::evaluate(EvaluationContext& context) const {
     Result<long long> value = child->evaluate(context);
-    if (value.failure()) {
+    if (!value) {
         return value;
     }
     
@@ -123,12 +123,12 @@ void Add::accept(ASTVisitor& visitor) const {
 
 Result<long long> Add::evaluate(EvaluationContext& context) const {
     Result<long long> lhs = leftChild->evaluate(context);
-    if (lhs.failure()) {
+    if (!lhs) {
         return lhs;
     }
 
     Result<long long> rhs = rightChild->evaluate(context);
-    if (rhs.failure()) {
+    if (!rhs) {
         return rhs;
     }
 
@@ -149,12 +149,12 @@ void Subtract::accept(ASTVisitor& visitor) const {
 
 Result<long long> Subtract::evaluate(EvaluationContext& context) const {
     Result<long long> lhs = leftChild->evaluate(context);
-    if (lhs.failure()) {
+    if (!lhs) {
         return lhs;
     }
 
     Result<long long> rhs = rightChild->evaluate(context);
-    if (rhs.failure()) {
+    if (!rhs) {
         return rhs;
     }
 
@@ -175,12 +175,12 @@ void Multiply::accept(ASTVisitor& visitor) const {
 
 Result<long long> Multiply::evaluate(EvaluationContext& context) const {
     Result<long long> lhs = leftChild->evaluate(context);
-    if (lhs.failure()) {
+    if (!lhs) {
         return lhs;
     }
 
     Result<long long> rhs = rightChild->evaluate(context);
-    if (rhs.failure()) {
+    if (!rhs) {
         return rhs;
     }
 
@@ -201,12 +201,12 @@ void Divide::accept(ASTVisitor& visitor) const {
 
 Result<long long> Divide::evaluate(EvaluationContext& context) const {
     Result<long long> lhs = leftChild->evaluate(context);
-    if (lhs.failure()) {
+    if (!lhs) {
         return lhs;
     }
 
     Result<long long> rhs = rightChild->evaluate(context);
-    if (rhs.failure()) {
+    if (!rhs) {
         return rhs;
     }
 
@@ -241,7 +241,7 @@ void AssignmentStatement::accept(ASTVisitor& visitor) const {
 
 std::optional<code::SourceCodeError> AssignmentStatement::evaluate(EvaluationContext& context) const {
     Result<long long> value = expression->evaluate(context);
-    if (value.failure()) {
+    if (!value) {
         return value.error();
     }
 
@@ -265,7 +265,7 @@ void ReturnStatement::accept(ASTVisitor& visitor) const {
 
 std::optional<code::SourceCodeError> ReturnStatement::evaluate(EvaluationContext& context) const {
     Result<long long> value = expression->evaluate(context);
-    if (value.failure()) {
+    if (!value) {
         return value.error();
     }
 
@@ -359,6 +359,17 @@ std::vector<std::tuple<const Variable&, const Literal&>> ConstDeclaration::getCo
 }
 //---------------------------------------------------------------------------
 Function::Function() : total_symbols(0) {}
+Function::Function(
+    std::optional<ParamDeclaration> paramDeclaration,
+    std::optional<VarDeclaration> varDeclaration,
+    std::optional<ConstDeclaration> constDeclaration,
+    std::vector<std::unique_ptr<Statement>> statements,
+    code::SourceCodeReference beginReference,
+    size_t totalSymbols)
+    : paramDeclaration(std::move(paramDeclaration)), varDeclaration(std::move(varDeclaration)), constDeclaration(std::move(constDeclaration)),
+      statements(std::move(statements)),
+      begin_reference(beginReference),
+      total_symbols(totalSymbols) {}
 
 Node::Type Function::getType() const {
     return Node::Type::FUNCTION;
@@ -391,7 +402,8 @@ Result<long long> Function::evaluate(const std::vector<long long>& arguments) co
             return *error;
         }
 
-        // TODO assuming the optimization has run, the last statement is always a return statement!
+        // With the assumption that the dead code elimination optimization was run, we could omit this check.
+        // However, we don't want to build upon this assumption.
         if (context.return_value().has_value()) {
             return *context.return_value();
         }

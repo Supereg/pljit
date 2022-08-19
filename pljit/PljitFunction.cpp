@@ -50,11 +50,11 @@ void PljitFunction::ensure_compiled() {
         ast::ASTBuilder builder;
 
         Result<parse::FunctionDefinition> program = parser.parse_program();
-        if (program.failure()) {
+        if (!program) {
             compilation_error = program.error();
         } else {
             Result<ast::Function> func = builder.analyzeFunction(*program);
-            if (func.failure()) {
+            if (!func) {
                 compilation_error = program.error();
             } else {
                 function = func.release();

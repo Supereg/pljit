@@ -46,7 +46,10 @@ SourceIterator::reference SourceIterator::operator*() const {
 SourceCodeReference SourceIterator::codeReference() const {
     std::string_view::iterator begin = &operator*();
     std::string_view::iterator end = begin;
-    ++end;
+
+    if (begin != management->content().end()) {
+        ++end;
+    }
 
     return { management, {begin, end}};
 }

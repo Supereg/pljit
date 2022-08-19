@@ -20,11 +20,11 @@ TEST(Pljit, testExampleProgram) {
                                        "END.");
 
     auto result = func({100, 100, 100});
-    ASSERT_TRUE(result.success());
+    ASSERT_TRUE(result.isSuccess());
     ASSERT_EQ(*result, 2400000000);
 
     result = func(100, 100, 100);
-    ASSERT_TRUE(result.success());
+    ASSERT_TRUE(result.isSuccess());
     ASSERT_EQ(*result, 2400000000);
 }
 

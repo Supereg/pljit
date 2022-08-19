@@ -14,7 +14,9 @@ class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     public:
     DOTVisitor();
 
-    public:
+    template <typename T>
+    void print(const T& node);
+
     void visit(const GenericTerminal& node) override;
     void visit(const Identifier& node) override;
     void visit(const Literal& node) override;
@@ -34,6 +36,16 @@ class DOTVisitor: public ParseTreeVisitor, protected GenericDOTVisitor {
     void visit(const ParameterDeclarations& node) override;
     void visit(const FunctionDefinition& node) override;
 };
+//---------------------------------------------------------------------------
+template <typename T>
+void DOTVisitor::print(const T& node) {
+    reset();
+    printGraphHeader();
+
+    node.accept(*this);
+
+    printGraphFooter();
+}
 //---------------------------------------------------------------------------
 } // namespace pljit::parse
 //---------------------------------------------------------------------------

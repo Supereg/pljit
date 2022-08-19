@@ -11,73 +11,63 @@ namespace pljit::parse {
 //---------------------------------------------------------------------------
 Parser::Parser(lex::Lexer& lexer) : lexer(&lexer) {}
 
-// TODO are unique_ptr everywhere a better thing to do?
-Result<FunctionDefinition> Parser::parse_program() { // TODO whats the cache line size? does it make sense to pass this thing directly?
-    FunctionDefinition definition;
-    auto maybeError = parseFunctionDefinition(definition);
-    if (maybeError.has_value()) {
-        return *maybeError;
-    }
-
-    return definition;
+Result<FunctionDefinition> Parser::parse_program() {
+    return parseFunctionDefinition();
 }
 
-// TODO return the value!
-std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDefinition& destination) {
+Result<FunctionDefinition> Parser::parseFunctionDefinition() {
     Result<lex::Token> result;
 
+    std::optional<ParameterDeclarations> parameterDeclarations;
+    std::optional<VariableDeclarations> variableDeclarations;
+    std::optional<ConstantDeclarations> constantDeclarations;
+
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::KEYWORD, Keyword::PARAM)) {
-        if (auto error = parseParameterDeclarations(destination.parameterDeclarations);
-            error.has_value()) {
-            return error;
+        Result<ParameterDeclarations> declarations = parseParameterDeclarations();
+        if (!declarations) {
+            return declarations.error();
         }
+        parameterDeclarations = declarations.release();
     }
 
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::KEYWORD, Keyword::VAR)) {
-        if (auto error = parseVariableDeclarations(destination.variableDeclarations);
-            error.has_value()) {
-            return error;
+        Result<VariableDeclarations> declarations = parseVariableDeclarations();
+        if (!declarations) {
+            return declarations.error();
         }
+        variableDeclarations = declarations.release();
     }
 
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::KEYWORD, Keyword::CONST)) {
-        if (auto error = parseConstantDeclarations(destination.constantDeclarations);
-            error.has_value()) {
-            return error;
+        Result<ConstantDeclarations> declarations = parseConstantDeclarations();
+        if (!declarations) {
+            return declarations.error();
         }
+        constantDeclarations = declarations.release();
     }
 
-    result = lexer->peek_next();
-    if (result.failure()) {
-        return result.error();
-    }
-
-    if (result->getType() != lex::Token::Type::KEYWORD) {
-        return result->makeError(code::ErrorType::ERROR, "Expected `BEGIN` keyword!");
-    }
-
-    if (auto error = parseCompoundStatement(destination.compoundStatement);
-        error.has_value()) {
-        return error;
+    Result<CompoundStatement> compoundStatement = parseCompoundStatement();
+    if (!compoundStatement) {
+        return compoundStatement.error();
     }
 
     result = lexer->consume_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -91,86 +81,78 @@ std::optional<code::SourceCodeError> Parser::parseFunctionDefinition(FunctionDef
             .makeError(code::ErrorType::ERROR, "unexpected character after end of program terminator!");
     }
 
-    return {};
+    return FunctionDefinition{ parameterDeclarations, variableDeclarations, constantDeclarations, compoundStatement.release(), GenericTerminal{ result->reference() } };
 }
 
-std::optional<code::SourceCodeError> Parser::parseParameterDeclarations(std::optional<ParameterDeclarations>& destination) {
-    ParameterDeclarations declarations;
-
-    if (auto error = parseGenericTerminal(declarations.paramKeyword, lex::Token::Type::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
-        error.has_value()) {
-        return error;
+Result<ParameterDeclarations> Parser::parseParameterDeclarations() {
+    Result<GenericTerminal> paramKeyword = parseGenericTerminal(lex::Token::Type::KEYWORD, Keyword::PARAM, "Expected `PARAM` keyword!");
+    if (!paramKeyword) {
+        return paramKeyword.error();
     }
 
-    if (auto error = parseDeclaratorList(declarations.declaratorList);
-        error.has_value()) {
-        return error;
+    Result<DeclaratorList> declaratorList = parseDeclaratorList();
+    if (!declaratorList) {
+        return declaratorList.error();
     }
 
-    if (auto error = parseGenericTerminal(declarations.semicolon, lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (!semicolon) {
+        return semicolon.error();
     }
 
-    destination = declarations;
-    return {};
+    return ParameterDeclarations{ paramKeyword.release(), declaratorList.release(), semicolon.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseVariableDeclarations(std::optional<VariableDeclarations>& destination) {
-    VariableDeclarations declarations;
-
-    if (auto error = parseGenericTerminal(declarations.varKeyword, lex::Token::Type::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
-        error.has_value()) {
-        return error;
+Result<VariableDeclarations> Parser::parseVariableDeclarations() {
+    Result<GenericTerminal> varKeyword = parseGenericTerminal(lex::Token::Type::KEYWORD, Keyword::VAR, "Expected `VAR` keyword!");
+    if (!varKeyword) {
+        return varKeyword.error();
     }
 
-    if (auto error = parseDeclaratorList(declarations.declaratorList);
-        error.has_value()) {
-        return error;
+    Result<DeclaratorList> declaratorList = parseDeclaratorList();
+    if (!declaratorList) {
+        return declaratorList.error();
     }
 
-    if (auto error = parseGenericTerminal(declarations.semicolon, lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (!semicolon) {
+        return semicolon.error();
     }
 
-    destination = declarations;
-    return {};
+    return VariableDeclarations{ varKeyword.release(), declaratorList.release(), semicolon.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseConstantDeclarations(std::optional<ConstantDeclarations>& destination) {
-    ConstantDeclarations declarations;
-
-    if (auto error = parseGenericTerminal(declarations.constKeyword, lex::Token::Type::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
-        error.has_value()) {
-        return error;
+Result<ConstantDeclarations> Parser::parseConstantDeclarations() {
+    Result<GenericTerminal> constKeyword = parseGenericTerminal(lex::Token::Type::KEYWORD, Keyword::CONST, "Expected `CONST` keyword!");
+    if (!constKeyword) {
+        return constKeyword.error();
     }
 
-    if (auto error = parseInitDeclaratorList(declarations.initDeclaratorList);
-        error.has_value()) {
-        return error;
+    Result<InitDeclaratorList> initDeclaratorList = parseInitDeclaratorList();
+    if (!initDeclaratorList) {
+        return initDeclaratorList.error();
     }
 
-    if (auto error = parseGenericTerminal(declarations.semicolon, lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    if (!semicolon) {
+        return semicolon.error();
     }
 
-    destination = declarations;
-    return {};
+    return ConstantDeclarations{ constKeyword.release(), initDeclaratorList.release(), semicolon.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseDeclaratorList(DeclaratorList& destination) {
-    if (auto error = parseIdentifier(destination.identifier);
-        error.has_value()) {
-        return error;
+Result<DeclaratorList> Parser::parseDeclaratorList() {
+    Result<Identifier> identifier = parseIdentifier();
+    if (!identifier) {
+        return identifier.error();
     }
+
+    DeclaratorList declaratorList{ identifier.release() };
 
     Result<lex::Token> result;
-
     while (true) {
         result = lexer->peek_next();
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
@@ -181,28 +163,29 @@ std::optional<code::SourceCodeError> Parser::parseDeclaratorList(DeclaratorList&
         // mark token as consumed!
         lexer->consume(*result);
 
-        Identifier identifier;
-        if (auto error = parseIdentifier(identifier);
-            error.has_value()) {
-            return error;
+        Result<Identifier> additionalIdentifier = parseIdentifier();
+        if (!additionalIdentifier) {
+            return additionalIdentifier.error();
         }
 
-        destination.additionalIdentifiers.emplace_back(result->reference(), identifier);
+        declaratorList.appendIdentifier(GenericTerminal{ result->reference() }, additionalIdentifier.release());
     }
 
-    return {};
+    return declaratorList;
 }
 
-std::optional<code::SourceCodeError> Parser::parseInitDeclaratorList(InitDeclaratorList& destination) {
-    if (auto error = parseInitDeclarator(destination.initDeclarator);
-        error.has_value()) {
-        return error;
+Result<InitDeclaratorList> Parser::parseInitDeclaratorList() {
+    Result<InitDeclarator> initDeclarator = parseInitDeclarator();
+    if (!initDeclarator) {
+        return initDeclarator.error();
     }
+
+    InitDeclaratorList declaratorList{ initDeclarator.release() };
 
     Result<lex::Token> result;
     while (true) {
         result = lexer->peek_next();
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
@@ -213,66 +196,67 @@ std::optional<code::SourceCodeError> Parser::parseInitDeclaratorList(InitDeclara
         // mark token as consumed!
         lexer->consume(*result);
 
-        InitDeclarator declarator;
-        if (auto error = parseInitDeclarator(declarator);
-            error.has_value()) {
-            return error;
+        Result<InitDeclarator> additionalDeclarator = parseInitDeclarator();
+        if (!additionalDeclarator) {
+            return additionalDeclarator.error();
         }
 
-        destination.additionalInitDeclarators.emplace_back(result->reference(), declarator);
+        declaratorList.appendInitDeclarator(GenericTerminal{ result->reference() }, additionalDeclarator.release());
     }
 
-    return {};
+    return declaratorList;
 }
 
-std::optional<code::SourceCodeError> Parser::parseInitDeclarator(InitDeclarator& destination) {
-    if (auto error = parseIdentifier(destination.identifier);
-        error.has_value()) {
-        return error;
+Result<InitDeclarator> Parser::parseInitDeclarator() {
+    Result<Identifier> identifier = parseIdentifier();
+    if (!identifier) {
+        return identifier.error();
     }
 
-    if (auto error = parseGenericTerminal(destination.initOperator, lex::Token::Type::OPERATOR, Operator::INIT, "Expected `=` operator!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> init = parseGenericTerminal(lex::Token::Type::OPERATOR, Operator::INIT, "Expected `=` operator!");
+    if (!init) {
+        return init.error();
     }
 
-    if (auto error = parseLiteral(destination.literal);
-        error.has_value()) {
-        return error;
+    Result<Literal> literal = parseLiteral();
+    if (!literal) {
+        return literal.error();
     }
 
-    return {};
+    return InitDeclarator{ identifier.release(), init.release(), literal.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseCompoundStatement(CompoundStatement& destination) {
-    if (auto error = parseGenericTerminal(destination.beginKeyword, lex::Token::Type::KEYWORD, Keyword::BEGIN, "Expected `BEGIN` keyword!");
-        error.has_value()) {
-        return error;
+Result<CompoundStatement> Parser::parseCompoundStatement() {
+    Result<GenericTerminal> begin = parseGenericTerminal(lex::Token::Type::KEYWORD, Keyword::BEGIN, "Expected `BEGIN` keyword!");
+    if (!begin) {
+        return begin.error();
     }
 
-    if (auto error = parseStatementList(destination.statementList);
-        error.has_value()) {
-        return error;
+    Result<StatementList> statementList = parseStatementList();
+    if (!statementList) {
+        return statementList.error();
     }
 
-    if (auto error = parseGenericTerminal(destination.endKeyword, lex::Token::Type::KEYWORD, Keyword::END, "Expected `END` keyword!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> end = parseGenericTerminal(lex::Token::Type::KEYWORD, Keyword::END, "Expected `END` keyword!");
+    if (!end) {
+        return end.error();
     }
 
-    return {};
+    return CompoundStatement{ begin.release(), statementList.release(), end.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseStatementList(StatementList& destination) {
-    if (auto error = parseStatement(destination.statement);
-        error.has_value()) {
-        return error;
+Result<StatementList> Parser::parseStatementList() {
+    Result<Statement> statement = parseStatement();
+    if (!statement) {
+        return statement.error();
     }
+
+    StatementList statementList{ statement.release() };
 
     Result<lex::Token> result;
     while (true) {
         result = lexer->peek_next();
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
@@ -282,232 +266,207 @@ std::optional<code::SourceCodeError> Parser::parseStatementList(StatementList& d
 
         lexer->consume(*result);
 
-        Statement statement;
-        if (auto error = parseStatement(statement);
-            error.has_value()) {
-            return error;
+        Result<Statement> additionalStatement = parseStatement();
+        if (!additionalStatement) {
+            return additionalStatement.error();
         }
 
-        destination.additionalStatements.emplace_back(result->reference(), std::move(statement));
+        statementList.appendStatement(GenericTerminal{ result->reference() }, additionalStatement.release());
     }
 
-    return {};
+    return statementList;
 }
 
-std::optional<code::SourceCodeError> Parser::parseStatement(Statement& destination) {
+Result<Statement> Parser::parseStatement() {
     Result<lex::Token> result;
 
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::KEYWORD, Keyword::RETURN)) {
         lexer->consume(*result);
 
-        AdditiveExpression expression;
-
-        if (auto error = parseAdditiveExpression(expression);
-            error.has_value()) {
-            return error;
+        Result<AdditiveExpression> expression = parseAdditiveExpression();
+        if (!expression) {
+            return expression.error();
         }
 
-        destination.type = Statement::Type::RETURN;
-        destination.symbols.push_back(std::make_unique<GenericTerminal>(result->reference()));
-        destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
+        return Statement{ GenericTerminal(result->reference()), expression.release() };
     } else if (result->getType() == lex::Token::Type::IDENTIFIER) {
-        AssignmentExpression expression;
-
-        if (auto error = parseAssignmentExpression(expression);
-            error.has_value()) {
-            return error;
+        Result<AssignmentExpression> expression = parseAssignmentExpression();
+        if (!expression) {
+            return expression.error();
         }
 
-        destination.type = Statement::Type::ASSIGNMENT;
-        destination.symbols.push_back(std::make_unique<AssignmentExpression>(std::move(expression)));
+        return Statement{ expression.release() };
     } else {
         return result->makeError(code::ErrorType::ERROR, "Expected begin of statement. Assignment or RETURN expression!");
     }
-
-    return {};
 }
 
-std::optional<code::SourceCodeError> Parser::parseAssignmentExpression(AssignmentExpression& destination) {
-    if (auto error = parseIdentifier(destination.identifier);
-        error.has_value()) {
-        return error;
+Result<AssignmentExpression> Parser::parseAssignmentExpression() {
+    Result<Identifier> identifier = parseIdentifier();
+    if (!identifier) {
+        return identifier.error();
     }
 
-    if (auto error = parseGenericTerminal(destination.assignmentOperator, lex::Token::Type::OPERATOR, Operator::ASSIGNMENT, "Expected `:=` operator!");
-        error.has_value()) {
-        return error;
+    Result<GenericTerminal> op = parseGenericTerminal(lex::Token::Type::OPERATOR, Operator::ASSIGNMENT, "Expected `:=` operator!");
+    if (!op) {
+        return op.error();
     }
 
-    if (auto error = parseAdditiveExpression(destination.additiveExpression);
-        error.has_value()) {
-        return error;
+    Result<AdditiveExpression> additiveExpression = parseAdditiveExpression();
+    if (!additiveExpression) {
+        return additiveExpression.error();
     }
 
-    return {};
+    return AssignmentExpression{ identifier.release(), op.release(), additiveExpression.release() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseAdditiveExpression(AdditiveExpression& destination) {
-    if (auto error = parseMultiplicativeExpression(destination.expression);
-        error.has_value()) {
-        return error;
+Result<AdditiveExpression> Parser::parseAdditiveExpression() {
+    Result<MultiplicativeExpression> multiplicativeExpression = parseMultiplicativeExpression();
+    if (!multiplicativeExpression) {
+        return multiplicativeExpression.error();
     }
 
-    Result<lex::Token> result;
-
-    result = lexer->peek_next();
-    if (result.failure()) {
+    Result<lex::Token> result = lexer->peek_next();
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::OPERATOR, Operator::PLUS) || result->is(lex::Token::Type::OPERATOR, Operator::MINUS)) {
         lexer->consume(*result);
 
-        AdditiveExpression additiveExpression;
-
-        if (auto error = parseAdditiveExpression(additiveExpression);
-            error.has_value()) {
-            return error;
+        Result<AdditiveExpression> additiveExpression = parseAdditiveExpression();
+        if (!additiveExpression) {
+            return additiveExpression.error();
         }
 
-        destination.optionalOperand.emplace_back(result->reference(), std::move(additiveExpression));
+        return AdditiveExpression{ multiplicativeExpression.release(), GenericTerminal{ result->reference() }, additiveExpression.release()};
+    } else {
+        return AdditiveExpression{ multiplicativeExpression.release() };
     }
-
-    return {};
 }
-std::optional<code::SourceCodeError> Parser::parseMultiplicativeExpression(MultiplicativeExpression& destination) {
-    if (auto error = parseUnaryExpression(destination.expression);
-        error.has_value()) {
-        return error;
+
+Result<MultiplicativeExpression> Parser::parseMultiplicativeExpression() {
+    Result<UnaryExpression> unaryExpression = parseUnaryExpression();
+    if (!unaryExpression) {
+        return unaryExpression.error();
     }
 
-    Result<lex::Token> result;
-
-    result = lexer->peek_next();
-    if (result.failure()) {
+    Result<lex::Token> result = lexer->peek_next();
+    if (!result) {
         return result.error();
     }
 
     if (result->is(lex::Token::Type::OPERATOR, Operator::MULTIPLICATION) || result->is(lex::Token::Type::OPERATOR, Operator::DIVISION)) {
         lexer->consume(*result);
 
-        MultiplicativeExpression multiplicativeExpression;
-
-        if (auto error = parseMultiplicativeExpression(multiplicativeExpression);
-            error.has_value()) {
-            return error;
+        Result<MultiplicativeExpression> multiplicativeExpression = parseMultiplicativeExpression();
+        if (!multiplicativeExpression) {
+            return multiplicativeExpression.error();
         }
 
-        destination.optionalOperand.emplace_back(result->reference(), std::move(multiplicativeExpression));
+        return MultiplicativeExpression{ unaryExpression.release(), GenericTerminal{result->reference()}, multiplicativeExpression.release() };
+    } else {
+        return MultiplicativeExpression{ unaryExpression.release() };
     }
-
-    return {};
 }
-std::optional<code::SourceCodeError> Parser::parseUnaryExpression(UnaryExpression& destination) {
+Result<UnaryExpression> Parser::parseUnaryExpression() {
     Result<lex::Token> result;
 
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
+    std::optional<GenericTerminal> unaryOperator;
+
     if (result->is(lex::Token::Type::OPERATOR, Operator::PLUS) || result->is(lex::Token::Type::OPERATOR, Operator::MINUS)) {
         lexer->consume(*result);
-        destination.unaryOperator = GenericTerminal{result->reference()};
+        unaryOperator = GenericTerminal{ result->reference() };
     }
 
-    if (auto error = parsePrimaryExpression(destination.primaryExpression);
-        error.has_value()) {
-        return error;
+    Result<PrimaryExpression> expression = parsePrimaryExpression();
+    if (!expression) {
+        return expression.error();
     }
 
-    return {};
+    if (unaryOperator) {
+        return UnaryExpression{ *unaryOperator, expression.release() };
+    } else {
+        return UnaryExpression{ expression.release() };
+    }
 }
 
-std::optional<code::SourceCodeError> Parser::parsePrimaryExpression(PrimaryExpression& destination) {
+Result<PrimaryExpression> Parser::parsePrimaryExpression() {
     Result<lex::Token> result;
 
     result = lexer->peek_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->getType() == lex::Token::Type::IDENTIFIER) {
-        Identifier identifier;
-
-        if (auto error = parseIdentifier(identifier);
-            error.has_value()) {
-            return error;
+        Result<Identifier> identifier = parseIdentifier();
+        if (!identifier) {
+            return identifier.error();
         }
 
-        destination.type = PrimaryExpression::Type::IDENTIFIER;
-        destination.symbols.push_back(std::make_unique<Identifier>(identifier));
+        return PrimaryExpression{ identifier.release() };
     } else if (result->getType() == lex::Token::Type::LITERAL) {
-        Literal literal;
-
-        if (auto error = parseLiteral(literal);
-            error.has_value()) {
-            return error;
+        Result<Literal> literal = parseLiteral();
+        if (!literal) {
+            return literal.error();
         }
 
-        destination.type = PrimaryExpression::Type::LITERAL;
-        destination.symbols.push_back(std::make_unique<Literal>(literal));
+        return PrimaryExpression{ literal.release() };
     } else if (result->is(lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_OPEN)) {
-        GenericTerminal open;
-        AdditiveExpression expression;
-        GenericTerminal close;
-
-        if (auto error = parseGenericTerminal(open, lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_OPEN, "Expected `(` parenthesis!");
-            error.has_value()) {
-            return error;
+        Result<GenericTerminal> open = parseGenericTerminal(lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_OPEN, "Expected `(` parenthesis!");
+        if (!open) {
+            return open.error();
         }
 
-        if (auto error = parseAdditiveExpression(expression);
-            error.has_value()) {
-            return error;
+        Result<AdditiveExpression> expression = parseAdditiveExpression();
+        if (!expression) {
+            return expression.error();
         }
 
-        if (auto error = parseGenericTerminal(close, lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
-            error.has_value()) {
-            return error->attachCause(open.reference().makeError(code::ErrorType::NOTE, "opening bracket here"));
+
+        Result<GenericTerminal> close = parseGenericTerminal(lex::Token::Type::PARENTHESIS, Parenthesis::ROUND_CLOSE, "Expected matching `)` parenthesis!");
+        if (!close) {
+            return close.error()
+                    .attachCause(open->reference().makeError(code::ErrorType::NOTE, "opening bracket here"));
         }
 
-        destination.type = PrimaryExpression::Type::ADDITIVE_EXPRESSION;
-        destination.symbols.push_back(std::make_unique<GenericTerminal>(open));
-        destination.symbols.push_back(std::make_unique<AdditiveExpression>(std::move(expression)));
-        destination.symbols.push_back(std::make_unique<GenericTerminal>(close));
+        return PrimaryExpression{ open.release(), expression.release(), close.release() };
     } else {
         return result->makeError(code::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
     }
-
-    return {};
 }
 
-std::optional<code::SourceCodeError> Parser::parseIdentifier(Identifier& destination) {
+Result<Identifier> Parser::parseIdentifier() {
     Result<lex::Token> result;
 
     result = lexer->consume_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
     if (result->getType() != lex::Token::Type::IDENTIFIER) {
-        return result->makeError(code::ErrorType::ERROR, "Expected string!");
+        return result->makeError(code::ErrorType::ERROR, "Expected an identifier!");
     }
 
-    destination.src_reference = result->reference();
-    return {};
+    return Identifier{ result->reference() };
 }
 
-std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) {
+Result<Literal> Parser::parseLiteral() {
     Result<lex::Token> result;
 
     result = lexer->consume_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -531,22 +490,17 @@ std::optional<code::SourceCodeError> Parser::parseLiteral(Literal& destination) 
         return result->makeError(code::ErrorType::ERROR, "Integer literal wasn't fully parsed!");
     }
 
-    // TODO might be bad style; writing into variables?
-    destination.src_reference = result->reference();
-    destination.literalValue = value;
-
-    return {};
+    return Literal{ result->reference(), value };
 }
 
-std::optional<code::SourceCodeError> Parser::parseGenericTerminal(
-    GenericTerminal& destination,
+Result<GenericTerminal> Parser::parseGenericTerminal(
     lex::Token::Type expected_type,
     std::string_view expected_content, // NOLINT(bugprone-easily-swappable-parameters)
     std::string_view potential_error_message) {
     Result<lex::Token> result;
 
     result = lexer->consume_next();
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -554,8 +508,7 @@ std::optional<code::SourceCodeError> Parser::parseGenericTerminal(
         return result->makeError(code::ErrorType::ERROR, potential_error_message);
     }
 
-    destination.src_reference = result->reference();
-    return {};
+    return GenericTerminal{ result->reference() };
 }
 //---------------------------------------------------------------------------
 } // namespace pljit::parse

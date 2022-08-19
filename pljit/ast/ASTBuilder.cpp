@@ -14,31 +14,36 @@ namespace pljit::ast {
 ASTBuilder::ASTBuilder() : symbolTable() {}
 
 Result<Function> ASTBuilder::analyzeFunction(const parse::FunctionDefinition& node) {
-    Function function;
     Result<std::unique_ptr<Statement>> result;
+
+    std::optional<ParamDeclaration> paramDeclaration;
+    std::optional<VarDeclaration> varDeclaration;
+    std::optional<ConstDeclaration> constDeclaration;
+    std::vector<std::unique_ptr<Statement>> statements;
 
     if (node.getParameterDeclarations()) {
         auto declResult = analyzeParamDeclaration(*node.getParameterDeclarations());
-        if (declResult.failure()) {
+        if (!declResult) {
             return declResult.error();
         }
-        function.paramDeclaration = *declResult;
+
+        paramDeclaration = declResult.release();
     }
 
     if (node.getVariableDeclarations()) {
         auto declResult = analyzeVarDeclaration(*node.getVariableDeclarations());
-        if (declResult.failure()) {
+        if (!declResult) {
             return declResult.error();
         }
-        function.varDeclaration = *declResult;
+        varDeclaration = declResult.release();
     }
 
     if (node.getConstantDeclarations()) {
         auto declResult = analyzeConstDeclaration(*node.getConstantDeclarations());
-        if (declResult.failure()) {
+        if (!declResult) {
             return declResult.error();
         }
-        function.constDeclaration = *declResult;
+        constDeclaration = declResult.release();
     }
 
 
@@ -46,23 +51,29 @@ Result<Function> ASTBuilder::analyzeFunction(const parse::FunctionDefinition& no
     auto& statementList = compound.getStatementList();
 
     result = analyzeStatement(statementList.getStatement());
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
-    function.statements.push_back(result.release());
+    statements.push_back(result.release());
 
     for (auto& [genericTerminal, statement]: statementList.getAdditionalStatements()) {
         result = analyzeStatement(statement);
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
-        function.statements.push_back(result.release());
+        statements.push_back(result.release());
     }
 
-    function.begin_reference = compound.getBeginKeyword().reference();
-    function.total_symbols = symbolTable.size();
+    Function function{
+        std::move(paramDeclaration),
+        std::move(varDeclaration),
+        std::move(constDeclaration),
+        std::move(statements),
+        compound.getBeginKeyword().reference(),
+        symbolTable.size()
+    };
 
     bool found_return = false;
     for (auto& statement: function.getStatements()) {
@@ -87,28 +98,26 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::Parame
     std::vector<Variable> variables;
     variables.reserve(1 + declaratorList.getAdditionalIdentifiers().size());
 
-    // TODO parameters aren't constants right?
     result = symbolTable.declareIdentifier(declaratorList.getIdentifier(), SymbolTable::SymbolType::PARAM);
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
-    variables.emplace_back(*result, declaratorList.getIdentifier().value());
+    variables.emplace_back(result.release(), declaratorList.getIdentifier().value());
 
     for (auto& [genericTerminal, identifier]: declaratorList.getAdditionalIdentifiers()) {
         result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::PARAM);
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
-        variables.emplace_back(*result, identifier.value());
+        variables.emplace_back(result.release(), identifier.value());
     }
 
     return ParamDeclaration{ node.getParamKeyword().reference(), variables };
 }
 
 Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::VariableDeclarations& node) {
-    // TODO code duplication!
     Result<symbol_id> result;
     auto& declaratorList = node.getDeclaratorList();
 
@@ -116,19 +125,19 @@ Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::VariableDe
     variables.reserve(1 + declaratorList.getAdditionalIdentifiers().size());
 
     result = symbolTable.declareIdentifier(declaratorList.getIdentifier(), SymbolTable::SymbolType::VAR);
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
-    variables.emplace_back(*result, declaratorList.getIdentifier().value());
+    variables.emplace_back(result.release(), declaratorList.getIdentifier().value());
 
     for (auto& [genericTerminal, identifier]: declaratorList.getAdditionalIdentifiers()) {
         result = symbolTable.declareIdentifier(identifier, SymbolTable::SymbolType::VAR);
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
-        variables.emplace_back(*result, identifier.value());
+        variables.emplace_back(result.release(), identifier.value());
     }
 
     return VarDeclaration{ variables };
@@ -145,20 +154,20 @@ Result<ConstDeclaration> ASTBuilder::analyzeConstDeclaration(const parse::Consta
     literals.reserve(1 + initDeclaratorList.getAdditionalInitDeclarators().size());
 
     result = symbolTable.declareIdentifier(initDeclarator.getIdentifier(), SymbolTable::SymbolType::CONST);
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
-    variables.emplace_back(*result, initDeclarator.getIdentifier().value());
+    variables.emplace_back(result.release(), initDeclarator.getIdentifier().value());
     literals.emplace_back(initDeclarator.getLiteral().value());
 
     for (auto& [genericTerminal, declarator]: initDeclaratorList.getAdditionalInitDeclarators()) {
         result = symbolTable.declareIdentifier(declarator.getIdentifier(), SymbolTable::SymbolType::CONST);
-        if (result.failure()) {
+        if (!result) {
             return result.error();
         }
 
-        variables.emplace_back(*result, declarator.getIdentifier().value());
+        variables.emplace_back(result.release(), declarator.getIdentifier().value());
         literals.emplace_back(declarator.getLiteral().value());
     }
 
@@ -173,18 +182,18 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::Sta
             auto& assignment = node.asAssignmentExpression();
 
             result = analyzeExpression(assignment.getAdditiveExpression());
-            if (result.failure()) {
+            if (!result) {
                 return result.error();
             }
 
             Result<symbol_id> target = symbolTable.useAsAssignmentTarget(assignment.getIdentifier());
-            if (target.failure()) {
-                return target.error(); // TODO implicit conversion?
+            if (!target) {
+                return target.error();
             }
 
             std::unique_ptr<Statement> statement = std::make_unique<AssignmentStatement>(
                 result.release(),
-                Variable{ *target, assignment.getIdentifier().value() }
+                Variable{ target.release(), assignment.getIdentifier().value() }
             );
             return statement;
         }
@@ -192,7 +201,7 @@ Result<std::unique_ptr<Statement>> ASTBuilder::analyzeStatement(const parse::Sta
             auto [returnKeyword, additiveExpression] = node.asReturnExpression();
 
             result = analyzeExpression(additiveExpression);
-            if (result.failure()) {
+            if (!result) {
                 return result.error();
             }
 
@@ -214,7 +223,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::A
         return result;
     }
 
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -222,7 +231,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::A
     auto [operatorTerminal, additiveExpression] = *node.getOperand();
 
     result = analyzeExpression(additiveExpression);
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -245,7 +254,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::M
         return result;
     }
 
-    if (result.failure()) { // TODO implicit bool conversion?
+    if (!result) {
         return result.error();
     }
 
@@ -253,7 +262,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::M
     auto [operatorTerminal, multiplicativeExpression] = *node.getOperand();
 
     result = analyzeExpression(multiplicativeExpression);
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -276,7 +285,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::U
         return result;
     }
 
-    if (result.failure()) {
+    if (!result) {
         return result.error();
     }
 
@@ -299,11 +308,11 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::P
     switch (node.getType()) {
         case parse::PrimaryExpression::Type::IDENTIFIER: {
             Result<symbol_id> result = symbolTable.useIdentifier(node.asIdentifier());
-            if (result.failure()) {
+            if (!result) {
                 return result.error();
             }
 
-            expression = std::make_unique<Variable>(*result, node.asIdentifier().value());
+            expression = std::make_unique<Variable>(result.release(), node.asIdentifier().value());
             return expression;
         }
         case parse::PrimaryExpression::Type::LITERAL:

@@ -19,15 +19,11 @@ class ParseTreeVisitor;
 class AdditiveExpression;
 //---------------------------------------------------------------------------
 class Symbol {
-    friend class pljit::parse::Parser;
-
     protected:
-    // TODO not initialized in many symbols!!! (e.g. Primary Expression!)
-    // TODO getter checks for nullptr!!!
     code::SourceCodeReference src_reference;
     public:
     Symbol();
-    Symbol(code::SourceCodeReference src_reference);
+    explicit Symbol(code::SourceCodeReference src_reference);
 
     virtual ~Symbol() = default;
 
@@ -48,13 +44,13 @@ class GenericTerminal : public Symbol {
 class Identifier : public Symbol {
     public:
     Identifier();
+    explicit Identifier(code::SourceCodeReference src_reference);
 
     std::string_view value() const;
     void accept(ParseTreeVisitor& visitor) const override;
 };
 //---------------------------------------------------------------------------
 class Literal : public Symbol {
-    friend class pljit::parse::Parser;
     long long literalValue; // 64-bit integer
 
     public:
@@ -67,8 +63,6 @@ class Literal : public Symbol {
 };
 //---------------------------------------------------------------------------
 class PrimaryExpression : public Symbol {
-    friend class pljit::parse::Parser;
-
     public:
     /// Describes the content type of the `symbols` property.
     enum class Type {
@@ -87,6 +81,9 @@ class PrimaryExpression : public Symbol {
 
     public:
     PrimaryExpression();
+    explicit PrimaryExpression(Identifier identifier);
+    explicit PrimaryExpression(Literal literal);
+    PrimaryExpression(GenericTerminal open, AdditiveExpression additiveExpression, GenericTerminal close);
 
     Type getType() const;
 
@@ -98,13 +95,13 @@ class PrimaryExpression : public Symbol {
 };
 //---------------------------------------------------------------------------
 class UnaryExpression : public Symbol {
-    friend class pljit::parse::Parser; // TODO can we avoid all the friend definitions in this file?
-
     std::optional<GenericTerminal> unaryOperator;
     PrimaryExpression primaryExpression;
 
     public:
     UnaryExpression();
+    explicit UnaryExpression(PrimaryExpression primaryExpression);
+    UnaryExpression(GenericTerminal unaryOperator, PrimaryExpression primaryExpression);
 
     const std::optional<GenericTerminal>& getUnaryOperator() const;
     const PrimaryExpression& getPrimaryExpression() const;
@@ -113,13 +110,13 @@ class UnaryExpression : public Symbol {
 };
 //---------------------------------------------------------------------------
 class MultiplicativeExpression : public Symbol {
-    friend class pljit::parse::Parser;
-
     UnaryExpression expression;
     std::vector<std::tuple<GenericTerminal, MultiplicativeExpression>> optionalOperand;
 
     public:
     MultiplicativeExpression();
+    explicit MultiplicativeExpression(UnaryExpression unaryExpression);
+    MultiplicativeExpression(UnaryExpression unaryExpression, GenericTerminal op, MultiplicativeExpression multiplicativeExpression);
 
     const UnaryExpression& getExpression() const;
     std::optional<std::tuple<const GenericTerminal&, const MultiplicativeExpression&>> getOperand() const;
@@ -128,14 +125,14 @@ class MultiplicativeExpression : public Symbol {
 };
 //---------------------------------------------------------------------------
 class AdditiveExpression : public Symbol {
-    friend class pljit::parse::Parser;
-
     MultiplicativeExpression expression;
 
     std::vector<std::tuple<GenericTerminal, AdditiveExpression>> optionalOperand;
 
     public:
     AdditiveExpression();
+    explicit AdditiveExpression(MultiplicativeExpression multiplicativeExpression);
+    AdditiveExpression(MultiplicativeExpression multiplicativeExpression, GenericTerminal op, AdditiveExpression additiveExpression);
 
     const MultiplicativeExpression& getExpression() const;
     std::optional<std::tuple<const GenericTerminal&, const AdditiveExpression&>> getOperand() const;
@@ -144,14 +141,13 @@ class AdditiveExpression : public Symbol {
 };
 //---------------------------------------------------------------------------
 class AssignmentExpression : public Symbol {
-    friend class pljit::parse::Parser;
-
     Identifier identifier;
     GenericTerminal assignmentOperator;
     AdditiveExpression additiveExpression;
 
     public:
     AssignmentExpression();
+    AssignmentExpression(Identifier identifier, GenericTerminal op, AdditiveExpression additiveExpression);
 
     const Identifier& getIdentifier() const;
     const GenericTerminal& getAssignmentOperator() const;
@@ -161,8 +157,6 @@ class AssignmentExpression : public Symbol {
 };
 //---------------------------------------------------------------------------
 class Statement : public Symbol {
-    friend class pljit::parse::Parser;
-
     public:
     /// Describes the content type of the `symbols` property.
     enum class Type {
@@ -179,6 +173,8 @@ class Statement : public Symbol {
 
     public:
     Statement();
+    explicit Statement(AssignmentExpression assignmentExpression);
+    Statement(GenericTerminal returnKeyword, AdditiveExpression additiveExpression);
 
     /// Deleted copy constructor
     Statement(const Statement& other) = delete;
@@ -199,13 +195,14 @@ class Statement : public Symbol {
 };
 //---------------------------------------------------------------------------
 class StatementList : public Symbol {
-    friend class pljit::parse::Parser;
-
     Statement statement;
     std::vector<std::tuple<GenericTerminal, Statement>> additionalStatements;
 
     public:
     StatementList();
+    explicit StatementList(Statement statement);
+
+    void appendStatement(GenericTerminal separator, Statement statement);
 
     const Statement& getStatement() const;
     const std::vector<std::tuple<GenericTerminal, Statement>>& getAdditionalStatements() const;
@@ -214,14 +211,13 @@ class StatementList : public Symbol {
 };
 //---------------------------------------------------------------------------
 class CompoundStatement : public Symbol {
-    friend class pljit::parse::Parser;
-
     GenericTerminal beginKeyword;
     StatementList statementList;
     GenericTerminal endKeyword;
 
     public:
     CompoundStatement();
+    CompoundStatement(GenericTerminal beginKeyword, StatementList statementList, GenericTerminal endKeyword);
 
     const GenericTerminal& getBeginKeyword() const;
     const StatementList& getStatementList() const;
@@ -231,14 +227,13 @@ class CompoundStatement : public Symbol {
 };
 //---------------------------------------------------------------------------
 class InitDeclarator : public Symbol {
-    friend class pljit::parse::Parser;
-
     Identifier identifier;
     GenericTerminal initOperator;
     Literal literal;
 
     public:
     InitDeclarator();
+    InitDeclarator(Identifier identifier, GenericTerminal initOperator, Literal literal);
 
     const Identifier& getIdentifier() const;
     const GenericTerminal& getInitOperator() const;
@@ -248,13 +243,14 @@ class InitDeclarator : public Symbol {
 };
 //---------------------------------------------------------------------------
 class InitDeclaratorList : public Symbol {
-    friend class pljit::parse::Parser;
-
     InitDeclarator initDeclarator;
     std::vector<std::tuple<GenericTerminal, InitDeclarator>> additionalInitDeclarators;
 
     public:
     InitDeclaratorList();
+    explicit InitDeclaratorList(InitDeclarator initDeclarator);
+
+    void appendInitDeclarator(GenericTerminal separator, InitDeclarator initDeclarator);
 
     const InitDeclarator& getInitDeclarator() const;
     const std::vector<std::tuple<GenericTerminal, InitDeclarator>>& getAdditionalInitDeclarators() const;
@@ -263,13 +259,14 @@ class InitDeclaratorList : public Symbol {
 };
 //---------------------------------------------------------------------------
 class DeclaratorList : public Symbol {
-    friend class pljit::parse::Parser;
-
     Identifier identifier;
     std::vector<std::tuple<GenericTerminal, Identifier>> additionalIdentifiers;
 
     public:
     DeclaratorList();
+    explicit DeclaratorList(Identifier identifier);
+
+    void appendIdentifier(GenericTerminal separator, Identifier identifier);
 
     const Identifier& getIdentifier() const;
     const std::vector<std::tuple<GenericTerminal, Identifier>>& getAdditionalIdentifiers() const;
@@ -278,14 +275,13 @@ class DeclaratorList : public Symbol {
 };
 //---------------------------------------------------------------------------
 class ConstantDeclarations : public Symbol {
-    friend class pljit::parse::Parser;
-
     GenericTerminal constKeyword;
     InitDeclaratorList initDeclaratorList;
     GenericTerminal semicolon;
 
     public:
     ConstantDeclarations();
+    ConstantDeclarations(GenericTerminal constKeyword, InitDeclaratorList initDeclaratorList, GenericTerminal semicolon);
 
     const GenericTerminal& getConstKeyword() const;
     const InitDeclaratorList& getInitDeclaratorList() const;
@@ -295,14 +291,13 @@ class ConstantDeclarations : public Symbol {
 };
 //---------------------------------------------------------------------------
 class VariableDeclarations : public Symbol {
-    friend class pljit::parse::Parser;
-
     GenericTerminal varKeyword;
     DeclaratorList declaratorList;
     GenericTerminal semicolon;
 
     public:
     VariableDeclarations();
+    VariableDeclarations(GenericTerminal varKeyword, DeclaratorList declaratorList, GenericTerminal semicolon);
 
     const GenericTerminal& getVarKeyword() const;
     const DeclaratorList& getDeclaratorList() const;
@@ -312,14 +307,13 @@ class VariableDeclarations : public Symbol {
 };
 //---------------------------------------------------------------------------
 class ParameterDeclarations : public Symbol {
-    friend class pljit::parse::Parser;
-
     GenericTerminal paramKeyword;
     DeclaratorList declaratorList;
     GenericTerminal semicolon;
 
     public:
     ParameterDeclarations();
+    ParameterDeclarations(GenericTerminal paramKeyword, DeclaratorList declaratorList, GenericTerminal semicolon);
 
     const GenericTerminal& getParamKeyword() const;
     const DeclaratorList& getDeclaratorList() const;
@@ -329,16 +323,23 @@ class ParameterDeclarations : public Symbol {
 };
 //---------------------------------------------------------------------------
 class FunctionDefinition : public Symbol {
-    friend class pljit::parse::Parser;
-
     std::optional<ParameterDeclarations> parameterDeclarations;
     std::optional<VariableDeclarations> variableDeclarations;
     std::optional<ConstantDeclarations> constantDeclarations;
 
     CompoundStatement compoundStatement;
 
+    GenericTerminal terminator;
+
     public:
     FunctionDefinition();
+    FunctionDefinition(
+        std::optional<ParameterDeclarations> parameterDeclarations,
+        std::optional<VariableDeclarations> variableDeclarations,
+        std::optional<ConstantDeclarations> constantDeclarations,
+        CompoundStatement compoundStatement,
+        GenericTerminal terminator
+    );
 
     const std::optional<ParameterDeclarations>& getParameterDeclarations() const;
     const std::optional<VariableDeclarations>& getVariableDeclarations() const;

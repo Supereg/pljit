@@ -61,6 +61,12 @@ class SourceCodeReference {
     public:
     /// Constructs an empty SourceCodeReference, associated with no `SourceCodeManagement`.
     SourceCodeReference();
+    /**
+     * Create a new SourceCodeReference from two SourceCodeReferences.
+     * @param start The first character of this reference will be the first character of the new reference.
+     * @param end The created SourceCodeReference will span till the last character in this SourceCodeReference.
+     */
+    SourceCodeReference(const SourceCodeReference& start, const SourceCodeReference& end);
 
     /// Access the underlying string_view.
     std::string_view operator*() const;

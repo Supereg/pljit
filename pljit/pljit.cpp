@@ -6,6 +6,10 @@
 #include "./PljitFunction.hpp"
 #include <atomic>
 
+// TODO -fno-rtti (no run time type information)
+// TODO separate libraries?
+// TODO check variable ordering (bigger to smaller!)
+
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------

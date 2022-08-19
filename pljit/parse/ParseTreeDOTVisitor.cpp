@@ -11,11 +11,7 @@ namespace pljit::parse {
 DOTVisitor::DOTVisitor() = default;
 
 void DOTVisitor::visit(const FunctionDefinition& node) {
-    reset();
-
     unsigned root = ++node_num;
-
-    printGraphHeader();
     printNode("function-definition");
 
     if (node.getParameterDeclarations()) {
@@ -35,8 +31,6 @@ void DOTVisitor::visit(const FunctionDefinition& node) {
 
     printEdge(root);
     node.getCompoundStatement().accept(*this);
-
-    printGraphFooter();
 }
 
 void DOTVisitor::visit(const ParameterDeclarations& node) {
