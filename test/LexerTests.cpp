@@ -31,7 +31,7 @@ TEST(Lexer, testBasicTokens) {
 
     // accessing Lexer after end of stream is considered an error!
     result = lexer.consume_next();
-    ASSERT_SRC_ERROR(result, CodePosition(1, 28), "unexpected end of stream!", "");
+    ASSERT_SRC_ERROR(result, CodePosition(1, 28), "Unexpected end of stream!", "");
 }
 
 TEST(Lexer, testIllegalToken) {
@@ -44,7 +44,7 @@ TEST(Lexer, testIllegalToken) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::KEYWORD, Keyword::PARAM);
 
     result = lexer.consume_next();
-    ASSERT_SRC_ERROR(result, CodePosition(1, 12), "unexpected character!", "?");
+    ASSERT_SRC_ERROR(result, CodePosition(1, 12), "Unexpected character!", "?");
 }
 
 TEST(Lexer, testVar) {
@@ -154,6 +154,40 @@ TEST(Lexer, testConcatenatedOperators) {
     ASSERT_NEXT_TOKEN(lexer, result, Token::Type::OPERATOR, Operator::DIVISION);
 
     ASSERT_TRUE(lexer.endOfStream());
+}
+
+TEST(Lexer, testMalformedAssignmentOperator) {
+    {
+        SourceCodeManagement management{":*="};
+        Lexer lexer{management};
+
+        Result<Token> result;
+
+        result = lexer.consume_next();
+        ASSERT_SRC_ERROR(result, CodePosition(1, 2), "Unexpected character to complete token!", "*");
+    }
+    {
+        SourceCodeManagement management{":)="};
+        Lexer lexer{management};
+
+        Result<Token> result;
+
+        result = lexer.consume_next();
+        ASSERT_SRC_ERROR(result, CodePosition(1, 2), "Unexpected character to complete token!", ")");
+    }
+    {
+        SourceCodeManagement management{"+* :"};
+
+        Lexer lexer{management};
+
+        Result<Token> result;
+
+        ASSERT_NEXT_TOKEN(lexer, result, Token::Type::OPERATOR, Operator::PLUS);
+        ASSERT_NEXT_TOKEN(lexer, result, Token::Type::OPERATOR, Operator::MULTIPLICATION);
+
+        result = lexer.consume_next();
+        ASSERT_SRC_ERROR(result, CodePosition(1, 4), "Unexpected end of stream on incomplete Token!", ":");
+    }
 }
 
 TEST(Lexer, testConcatenatedParenthesis) {

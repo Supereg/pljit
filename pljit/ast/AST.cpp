@@ -340,7 +340,7 @@ std::vector<std::tuple<const Variable&, const Literal&>> ConstDeclaration::getCo
     assert(literalValues.size() == declaredIdentifiers.size() && "Reached inconsistent state for ConstDeclaration!");
     vector.reserve(literalValues.size());
 
-    // The `zip` view in the ranges library is only available with C++, so this is the best and most efficient way
+    // The `zip` view in the ranges library is only available with C++23, so this is the best and most efficient way
     // I could come up with. Splitting the two vectors in the first place is a result of reusing the `Declaration`
     // class. I don't think it is worth caching the result, as it is typically only required once in the program execution.
 

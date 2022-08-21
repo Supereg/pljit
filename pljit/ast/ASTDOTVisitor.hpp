@@ -15,6 +15,8 @@ class DOTVisitor: public ASTVisitor, protected GenericDOTVisitor {
     public:
     DOTVisitor();
 
+    // TODO add generic print method, for partical printing!
+
     void visit(const Function& node) override;
     void visit(const ConstDeclaration& node) override;
     void visit(const VarDeclaration& node) override;

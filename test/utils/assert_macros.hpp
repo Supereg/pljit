@@ -5,6 +5,8 @@
 #ifndef PLJIT_ASSERT_MACROS_HPP
 #define PLJIT_ASSERT_MACROS_HPP
 
+#include <iostream>
+
 #define ASSERT_TOKEN(result, type, exp_content) \
     ASSERT_TRUE((result).isSuccess()); \
     EXPECT_EQ((result).value().getType(), (type)); \
@@ -21,12 +23,11 @@
     EXPECT_EQ(*(result).error().reference(), (exp_content))
 
 #define ASSERT_PARSE_TREE(tree, expected_tree) \
-    { \
+    do { \
         DOTVisitor visitor; \
         CaptureCOut capture; \
         visitor.print(tree); \
         ASSERT_EQ(capture.str(), expected_tree); \
-    } \
-    (void) 1
+    } while(0)
 
 #endif //PLJIT_ASSERT_MACROS_HPP

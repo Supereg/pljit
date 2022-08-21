@@ -48,6 +48,9 @@ class Token {
         /// (e.g. for single character operators).
         /// The Token should be considered complete and the character should be considered part of a new Token.
         END_OF_TOKEN,
+        /// The character given to extend the Token was invalid.
+        /// Therefore, the given token was not extended and is considered incomplete.
+        INCOMPLETE_TOKEN,
     };
 
     private:
@@ -63,6 +66,12 @@ class Token {
      * @return Returns `true` if the `Token` is an empty token.
      */
     bool isEmpty() const;
+    /**
+     * Check if the Token is considered incomplete.
+     * This is the case for e.g. multi character operators.
+     * @return Returns `true` if the `Token` is considered incomplete.
+     */
+    bool isIncomplete() const;
     /**
      * @return Returns the type of the Token!
      */

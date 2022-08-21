@@ -30,6 +30,8 @@ static Result<Function> buildAST(const SourceCodeManagement& management) {
     ASTBuilder builder;
     return builder.analyzeFunction(*program);
 }
+
+// TODO test with too many and to less arguments!
 //---------------------------------------------------------------------------
 TEST(ASTBuilder, testExampleProgram) {
     SourceCodeManagement management{"PARAM width, height, depth;\n"

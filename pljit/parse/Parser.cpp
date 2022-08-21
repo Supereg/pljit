@@ -46,6 +46,9 @@ Result<FunctionDefinition> Parser::parseFunctionDefinition() {
             return declarations.error();
         }
         variableDeclarations = declarations.release();
+    } else if (result->is(lex::Token::Type::KEYWORD, Keyword::PARAM) && parameterDeclarations) {
+        return result->makeError(code::ErrorType::ERROR, "Duplicate PARAM declaration!")
+            .attachCause(parameterDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
     }
 
     result = lexer->peek_next();
@@ -59,6 +62,40 @@ Result<FunctionDefinition> Parser::parseFunctionDefinition() {
             return declarations.error();
         }
         constantDeclarations = declarations.release();
+    } else if (result->is(lex::Token::Type::KEYWORD, Keyword::PARAM)) {
+        if (parameterDeclarations) {
+            return result->makeError(code::ErrorType::ERROR, "Duplicate PARAM declaration!")
+                .attachCause(parameterDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
+        } else {
+            return result->makeError(code::ErrorType::ERROR, "PARAM declaration must appear before VAR declaration!");
+        }
+    } else if (result->is(lex::Token::Type::KEYWORD, Keyword::VAR) && variableDeclarations) {
+        return result->makeError(code::ErrorType::ERROR, "Duplicate VAR declaration!")
+            .attachCause(variableDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
+    }
+
+    result = lexer->peek_next();
+    if (!result) {
+        return result.error();
+    }
+
+    if (result->is(lex::Token::Type::KEYWORD, Keyword::PARAM)) {
+        if (parameterDeclarations) {
+            return result->makeError(code::ErrorType::ERROR, "Duplicate PARAM declaration!")
+                .attachCause(parameterDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
+        } else {
+            return result->makeError(code::ErrorType::ERROR, "PARAM declaration must appear before CONST and VAR declarations!");
+        }
+    } else if (result->is(lex::Token::Type::KEYWORD, Keyword::VAR)) {
+        if (variableDeclarations) {
+            return result->makeError(code::ErrorType::ERROR, "Duplicate VAR declaration!")
+                .attachCause(variableDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
+        } else {
+            return result->makeError(code::ErrorType::ERROR, "VAR declaration must appear before CONST declaration!");
+        }
+    } else if (result->is(lex::Token::Type::KEYWORD, Keyword::CONST) && constantDeclarations) {
+        return result->makeError(code::ErrorType::ERROR, "Duplicate CONST declaration!")
+            .attachCause(constantDeclarations->reference().makeError(code::ErrorType::NOTE, "Original declaration here"));
     }
 
     Result<CompoundStatement> compoundStatement = parseCompoundStatement();
@@ -95,7 +132,7 @@ Result<ParameterDeclarations> Parser::parseParameterDeclarations() {
         return declaratorList.error();
     }
 
-    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` to terminate PARAM declarations!");
     if (!semicolon) {
         return semicolon.error();
     }
@@ -114,7 +151,7 @@ Result<VariableDeclarations> Parser::parseVariableDeclarations() {
         return declaratorList.error();
     }
 
-    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` to terminate VAR declarations!");
     if (!semicolon) {
         return semicolon.error();
     }
@@ -133,7 +170,7 @@ Result<ConstantDeclarations> Parser::parseConstantDeclarations() {
         return initDeclaratorList.error();
     }
 
-    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` separator!");
+    Result<GenericTerminal> semicolon = parseGenericTerminal(lex::Token::Type::SEPARATOR, Separator::SEMICOLON, "Expected `;` to terminate CONST declarations!");
     if (!semicolon) {
         return semicolon.error();
     }
@@ -260,8 +297,11 @@ Result<StatementList> Parser::parseStatementList() {
             return result.error();
         }
 
-        if (!result->is(lex::Token::Type::SEPARATOR, Separator::SEMICOLON)) {
+        if (result->is(lex::Token::Type::KEYWORD, "END")) {
+            // StatementList only ever occurs before END. To provide better error messages, we do this check here.
             break;
+        } else if (!result->is(lex::Token::Type::SEPARATOR, Separator::SEMICOLON)) {
+            return result->makeError(code::ErrorType::ERROR, "Expected `;` to terminate statement!");
         }
 
         lexer->consume(*result);
@@ -331,6 +371,11 @@ Result<AdditiveExpression> Parser::parseAdditiveExpression() {
         return multiplicativeExpression.error();
     }
 
+    if (lexer->endOfStream()) {
+        // edge case when not parsing whole programs!
+        return AdditiveExpression{ multiplicativeExpression.release() };
+    }
+
     Result<lex::Token> result = lexer->peek_next();
     if (!result) {
         return result.error();
@@ -354,6 +399,11 @@ Result<MultiplicativeExpression> Parser::parseMultiplicativeExpression() {
     Result<UnaryExpression> unaryExpression = parseUnaryExpression();
     if (!unaryExpression) {
         return unaryExpression.error();
+    }
+
+    if (lexer->endOfStream()) {
+        // edge case when not parsing whole programs!
+        return MultiplicativeExpression{ unaryExpression.release() };
     }
 
     Result<lex::Token> result = lexer->peek_next();
@@ -387,6 +437,8 @@ Result<UnaryExpression> Parser::parseUnaryExpression() {
     if (result->is(lex::Token::Type::OPERATOR, Operator::PLUS) || result->is(lex::Token::Type::OPERATOR, Operator::MINUS)) {
         lexer->consume(*result);
         unaryOperator = GenericTerminal{ result->reference() };
+    } else if (result->getType() == lex::Token::Type::OPERATOR) {
+        return result->makeError(code::ErrorType::ERROR, "Unexpected unary operator!");
     }
 
     Result<PrimaryExpression> expression = parsePrimaryExpression();
@@ -443,7 +495,7 @@ Result<PrimaryExpression> Parser::parsePrimaryExpression() {
 
         return PrimaryExpression{ open.release(), expression.release(), close.release() };
     } else {
-        return result->makeError(code::ErrorType::ERROR, "Expected string, literal or bracketed expression!");
+        return result->makeError(code::ErrorType::ERROR, "Expected a primary expression!");
     }
 }
 

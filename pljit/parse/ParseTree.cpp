@@ -52,13 +52,16 @@ void Literal::accept(ParseTreeVisitor& visitor) const {
 //---------------------------------------------------------------------------
 PrimaryExpression::PrimaryExpression() : type(Type::NONE), symbols(0) {}
 PrimaryExpression::PrimaryExpression(Identifier identifier) : Symbol(identifier.reference()), type(Type::IDENTIFIER), symbols() {
+    symbols.reserve(1);
     symbols.push_back(std::make_unique<Identifier>(std::move(identifier)));
 }
 PrimaryExpression::PrimaryExpression(Literal literal) : Symbol(literal.reference()), type(Type::LITERAL), symbols() {
+    symbols.reserve(1);
     symbols.push_back(std::make_unique<Literal>(std::move(literal)));
 }
 PrimaryExpression::PrimaryExpression(GenericTerminal open, AdditiveExpression additiveExpression, GenericTerminal close)
     : Symbol({ open.reference(), close.reference() }), type(Type::ADDITIVE_EXPRESSION), symbols() {
+    symbols.reserve(3);
     symbols.push_back(std::make_unique<GenericTerminal>(std::move(open)));
     symbols.push_back(std::make_unique<AdditiveExpression>(std::move(additiveExpression)));
     symbols.push_back(std::make_unique<GenericTerminal>(std::move(close)));
@@ -180,10 +183,12 @@ void AssignmentExpression::accept(ParseTreeVisitor& visitor) const {
 //---------------------------------------------------------------------------
 Statement::Statement() : type(Type::NONE), symbols(0) {}
 Statement::Statement(AssignmentExpression assignmentExpression) : Symbol(assignmentExpression.reference()), type(Type::ASSIGNMENT), symbols() {
+    symbols.reserve(1);
     symbols.push_back(std::make_unique<AssignmentExpression>(std::move(assignmentExpression)));
 }
 Statement::Statement(GenericTerminal returnKeyword, AdditiveExpression additiveExpression)
     : Symbol({ returnKeyword.reference(), additiveExpression.reference() }), type(Type::RETURN), symbols() {
+    symbols.reserve(2);
     symbols.push_back(std::make_unique<GenericTerminal>(std::move(returnKeyword)));
     symbols.push_back(std::make_unique<AdditiveExpression>(std::move(additiveExpression)));
 }

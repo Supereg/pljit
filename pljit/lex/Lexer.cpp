@@ -69,6 +69,10 @@ bool Token::isEmpty() const {
     return type == Type::EMPTY;
 }
 
+bool Token::isIncomplete() const {
+    return type == Type::OPERATOR && *source_code == ":";
+}
+
 Token::Type Token::getType() const {
     return type;
 }
@@ -100,6 +104,10 @@ Token::ExtendResult Token::extend(SourceIterator character) {
     }
 
     if (next_type != type) {
+        if (type == Type::OPERATOR && *source_code == ":") {
+            return ExtendResult::INCOMPLETE_TOKEN;
+        }
+
         return ExtendResult::END_OF_TOKEN;
     }
 
@@ -113,11 +121,13 @@ Token::ExtendResult Token::extend(SourceIterator character) {
             return ExtendResult::END_OF_TOKEN;
         }
 
-        if (!(*source_code == ":" && *character == '=')) {
+        if (*source_code != ":") {
             // we only allow to extend if current operator character is `:` and we want to extend with `=` to form `:=`.
             // While we could build a more abstract solution, capable of handling multiple multi character operators and
             // not dealing with magic constants, we don't (for now). We only need to handle a single character that is special in this way.
             return ExtendResult::END_OF_TOKEN;
+        } else if (*character != '=') {
+            return ExtendResult::INCOMPLETE_TOKEN;
         }
     }
 
@@ -209,7 +219,16 @@ Result<Token> Lexer::next() {
             case Token::ExtendResult::ERRONEOUS_CHARACTER: {
                 return current_position
                     .codeReference()
-                    .makeError(ErrorType::ERROR, "unexpected character!");
+                    .makeError(ErrorType::ERROR, "Unexpected character!");
+            }
+            case Token::ExtendResult::INCOMPLETE_TOKEN: {
+                SourceCodeError error = current_position
+                                            .codeReference()
+                                            .makeError(code::ErrorType::ERROR, "Unexpected character to complete token!");
+                if (!token.isEmpty()) {
+                    error.attachCause(token.reference().makeError(code::ErrorType::NOTE, "partial token here"));
+                }
+                return error;
             }
             case Token::ExtendResult::END_OF_TOKEN:
                 assert(current_position != management->begin()); // can't be by definition, at least one character was processed.
@@ -227,7 +246,13 @@ Result<Token> Lexer::next() {
     if (token.isEmpty()) {
         return current_position
             .codeReference()
-            .makeError(ErrorType::ERROR, "unexpected end of stream!");
+            .makeError(ErrorType::ERROR, "Unexpected end of stream!");
+    }
+
+    if (token.isIncomplete()) {
+        return token
+            .reference()
+            .makeError(ErrorType::ERROR, "Unexpected end of stream on incomplete Token!");
     }
 
     token.finalize();
