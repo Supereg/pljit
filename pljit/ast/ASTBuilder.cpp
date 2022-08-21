@@ -71,7 +71,6 @@ Result<Function> ASTBuilder::analyzeFunction(const parse::FunctionDefinition& no
         std::move(varDeclaration),
         std::move(constDeclaration),
         std::move(statements),
-        compound.getBeginKeyword().reference(),
         symbolTable.size()
     };
 
@@ -114,7 +113,7 @@ Result<ParamDeclaration> ASTBuilder::analyzeParamDeclaration(const parse::Parame
         variables.emplace_back(result.release(), identifier.value());
     }
 
-    return ParamDeclaration{ node.getParamKeyword().reference(), variables };
+    return ParamDeclaration{ variables };
 }
 
 Result<VarDeclaration> ASTBuilder::analyzeVarDeclaration(const parse::VariableDeclarations& node) {
@@ -270,7 +269,7 @@ Result<std::unique_ptr<Expression>> ASTBuilder::analyzeExpression(const parse::M
         std::unique_ptr<Expression> expression = std::make_unique<Multiply>(std::move(unaryExpression), result.release());
         return expression;
     } else if (operatorTerminal.value() == Operator::DIVISION) {
-        std::unique_ptr<Expression> expression = std::make_unique<Divide>(std::move(unaryExpression), result.release(), operatorTerminal.reference());
+        std::unique_ptr<Expression> expression = std::make_unique<Divide>(std::move(unaryExpression), result.release());
         return expression;
     } else {
         return node.reference()

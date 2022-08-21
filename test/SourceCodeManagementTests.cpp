@@ -2,6 +2,7 @@
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 //---------------------------------------------------------------------------
+using namespace pljit;
 using namespace pljit::code;
 //---------------------------------------------------------------------------
 TEST(SourceCodeManagement, testIteratorConcept) {
@@ -135,5 +136,3 @@ TEST(SourceCodeManagement, testErrorInLineWithTabs) {
                              "\t \tsome program;\n"
                              "\t \t   ^\n");
 }
-
-// TODO test error handling of multiline errors!

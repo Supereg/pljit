@@ -6,7 +6,7 @@
 #include <iostream>
 
 //---------------------------------------------------------------------------
-namespace pljit { // TODO linkage local?
+namespace pljit {
 //---------------------------------------------------------------------------
 using std::cout;
 using std::endl;

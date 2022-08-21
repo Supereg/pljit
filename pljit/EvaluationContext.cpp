@@ -18,6 +18,14 @@ long long& EvaluationContext::operator[](symbol_id symbolId) {
 std::optional<long long>& EvaluationContext::return_value() {
     return return_val;
 }
+
+std::optional<std::string_view> EvaluationContext::runtime_error() const {
+    return runtime_error_message;
+}
+
+void EvaluationContext::setRuntimeError(const std::optional<std::string_view>& runtime_error) {
+    runtime_error_message = runtime_error;
+}
 //---------------------------------------------------------------------------
 } // namespace pljit
 //---------------------------------------------------------------------------

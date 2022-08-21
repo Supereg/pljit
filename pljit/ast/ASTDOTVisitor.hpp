@@ -15,7 +15,8 @@ class DOTVisitor: public ASTVisitor, protected GenericDOTVisitor {
     public:
     DOTVisitor();
 
-    // TODO add generic print method, for partical printing!
+    template <typename T>
+    void print(const T& node);
 
     void visit(const Function& node) override;
     void visit(const ConstDeclaration& node) override;
@@ -32,6 +33,16 @@ class DOTVisitor: public ASTVisitor, protected GenericDOTVisitor {
     void visit(const Variable& node) override;
     void visit(const Literal& node) override;
 };
+//---------------------------------------------------------------------------
+template <typename T>
+void DOTVisitor::print(const T& node) {
+    reset();
+    printGraphHeader();
+
+    node.accept(*this);
+
+    printGraphFooter();
+}
 //---------------------------------------------------------------------------
 } // namespace pljit::ast
 //---------------------------------------------------------------------------

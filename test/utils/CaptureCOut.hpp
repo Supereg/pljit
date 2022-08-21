@@ -9,7 +9,7 @@
 #include <sstream>
 
 //---------------------------------------------------------------------------
-namespace {
+namespace pljit {
 //---------------------------------------------------------------------------
 class CaptureCOut { // taken from the AST exercise
     private:
@@ -18,24 +18,15 @@ class CaptureCOut { // taken from the AST exercise
     public:
     std::stringstream stream;
 
-    CaptureCOut() : sbuf(std::cout.rdbuf()) {
-        std::cout.rdbuf(stream.rdbuf());
-    }
+    CaptureCOut();
+    ~CaptureCOut();
 
-    ~CaptureCOut() {
-        stopCapture();
-    }
+    void stopCapture() const;
 
-    void stopCapture() const {
-        std::cout.rdbuf(sbuf);
-    }
-
-    auto str() const {
-        return stream.str();
-    }
+    std::string str() const;
 };
 //---------------------------------------------------------------------------
-} // namespace
+} // namespace pljit
 //---------------------------------------------------------------------------
 
 #endif //PLJIT_CAPTURECOUT_HPP

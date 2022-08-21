@@ -1,19 +1,26 @@
 //
-// Created by Andreas Bauer on 14.08.22.
+// Created by Andreas Bauer on 21.08.22.
 //
 
-#ifndef PLJIT_SYMBOL_ID_HPP
-#define PLJIT_SYMBOL_ID_HPP
-
-#include <cstddef>
+#include "./CaptureCOut.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
-/// A type alias used to refer to a variable identifier.
-using symbol_id = std::size_t;
+CaptureCOut::CaptureCOut() : sbuf(std::cout.rdbuf()) {
+    std::cout.rdbuf(stream.rdbuf());
+}
+CaptureCOut::~CaptureCOut() {
+    stopCapture();
+}
+
+void CaptureCOut::stopCapture() const {
+    std::cout.rdbuf(sbuf);
+}
+
+std::string CaptureCOut::str() const {
+    return stream.str();
+}
 //---------------------------------------------------------------------------
 } // namespace pljit
 //---------------------------------------------------------------------------
-
-#endif //PLJIT_SYMBOL_ID_HPP

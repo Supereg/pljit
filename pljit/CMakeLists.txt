@@ -1,5 +1,4 @@
 set(PLJIT_SOURCES
-    # add your source files here
     code/SourceCodeManagement.cpp
     lex/Lexer.cpp
     parse/Parser.cpp
@@ -11,7 +10,12 @@ set(PLJIT_SOURCES
     util/GenericDOTVisitor.cpp
     parse/ParseTree.cpp
     pljit.cpp
-    EvaluationContext.cpp optimizations/DeadCodeElimination.cpp optimizations/ConstantPropagation.cpp optimizations/ConstantPropagation.hpp PljitFunction.cpp PljitFunction.hpp code/SourceCode.cpp code/SourceCode.hpp)
+    EvaluationContext.cpp
+    optimizations/DeadCodeElimination.cpp
+    optimizations/ConstantPropagation.cpp
+    optimizations/ConstantPropagation.hpp
+    PljitFunction.cpp
+    code/SourceCode.cpp)
 
 add_library(pljit_core ${PLJIT_SOURCES})
 target_include_directories(pljit_core PUBLIC ${CMAKE_SOURCE_DIR})

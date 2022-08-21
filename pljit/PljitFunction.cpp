@@ -6,20 +6,27 @@
 #include "./ast/ASTBuilder.hpp"
 #include "./lex/Lexer.hpp"
 #include "./parse/Parser.hpp"
+#include <iostream>
 
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
 PljitFunction::PljitFunction(std::string&& source_code) : source_code(std::move(source_code)) {}
 
-Result<long long> PljitFunction::evaluate(const std::vector<long long>& arguments) {
+std::optional<long long> PljitFunction::evaluate(const std::vector<long long>& arguments) {
     ensure_compiled();
 
-    if (compilation_error) {
-        return *compilation_error;
+    if (compilation_error_val) {
+        return {};
     }
 
-    return function->evaluate(arguments);
+    auto context = function->evaluate(arguments);
+    if (context.runtime_error()) {
+        // specification said it is enough to print the error to std out.
+        std::cout << *context.runtime_error() << std::endl;
+    }
+
+    return context.return_value();
 }
 
 void PljitFunction::ensure_compiled() {
@@ -51,11 +58,11 @@ void PljitFunction::ensure_compiled() {
 
         Result<parse::FunctionDefinition> program = parser.parse_program();
         if (!program) {
-            compilation_error = program.error();
+            compilation_error_val = program.error();
         } else {
             Result<ast::Function> func = builder.analyzeFunction(*program);
             if (!func) {
-                compilation_error = program.error();
+                compilation_error_val = func.error();
             } else {
                 function = func.release();
             }
@@ -69,6 +76,10 @@ void PljitFunction::ensure_compiled() {
 
     // (3) we notify all currently waiting threads that the function is now compiled!
     function_compiled.notify_all();
+}
+
+std::optional<code::SourceCodeError> PljitFunction::compilation_error() const {
+    return compilation_error_val;
 }
 //---------------------------------------------------------------------------
 } // namespace pljit

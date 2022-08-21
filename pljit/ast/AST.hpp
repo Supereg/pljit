@@ -47,6 +47,9 @@ class Node {
     Node() = default;
     virtual ~Node() = default;
 
+    /**
+     * @return Returns the type of AST Node.
+     */
     virtual Type getType() const = 0;
     virtual void accept(ASTVisitor& visitor) const = 0;
 };
@@ -54,7 +57,12 @@ class Node {
 
 class Expression: public Node {
     public:
-    virtual Result<long long> evaluate(EvaluationContext& context) const = 0;
+    /**
+     * Evaluates the Expression.
+     * @param context The EvaluationContext used for the evaluation.
+     * @return Returns the value of the expression. Returns an empty optional if a runtime error occurred.
+     */
+    virtual std::optional<long long> evaluate(EvaluationContext& context) const = 0;
 };
 
 class Literal: public Expression {
@@ -64,7 +72,7 @@ class Literal: public Expression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 
     long long value() const;
 };
@@ -78,7 +86,7 @@ class Variable: public Expression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 
     symbol_id getSymbolId() const;
     const std::string_view& getName() const;
@@ -116,7 +124,7 @@ class UnaryPlus: public UnaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class UnaryMinus: public UnaryExpression {
@@ -125,7 +133,7 @@ class UnaryMinus: public UnaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Add: public BinaryExpression {
@@ -134,7 +142,7 @@ class Add: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Subtract: public BinaryExpression {
@@ -143,7 +151,7 @@ class Subtract: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Multiply: public BinaryExpression {
@@ -152,17 +160,16 @@ class Multiply: public BinaryExpression {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Divide: public BinaryExpression {
-    code::SourceCodeReference operatorSymbol;
     public:
-    Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild, code::SourceCodeReference operatorSymbol);
+    Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild);
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    Result<long long> evaluate(EvaluationContext& context) const override;
+    std::optional<long long> evaluate(EvaluationContext& context) const override;
 };
 
 class Statement: public Node {
@@ -176,7 +183,7 @@ class Statement: public Node {
     std::unique_ptr<Expression>& getExpressionPtr();
 
 
-    [[nodiscard]] virtual std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const = 0;
+    virtual void evaluate(EvaluationContext& context) const = 0;
 };
 
 class AssignmentStatement: public Statement {
@@ -187,7 +194,7 @@ class AssignmentStatement: public Statement {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const override;
+    void evaluate(EvaluationContext& context) const override;
 
     const Variable& getVariable() const;
 };
@@ -198,7 +205,7 @@ class ReturnStatement: public Statement {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context) const override;
+    void evaluate(EvaluationContext& context) const override;
 };
 
 class Declaration: public Node {
@@ -212,15 +219,13 @@ class Declaration: public Node {
 };
 
 class ParamDeclaration: public Declaration {
-    code::SourceCodeReference paramKeyword;
-
     public:
     ParamDeclaration();
-    explicit ParamDeclaration(code::SourceCodeReference paramKeyword, std::vector<Variable> declaredIdentifiers);
+    explicit ParamDeclaration(std::vector<Variable> declaredIdentifiers);
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    [[nodiscard]] std::optional<code::SourceCodeError> evaluate(EvaluationContext& context, std::vector<long long> arguments) const;
+    void evaluate(EvaluationContext& context, std::vector<long long> arguments) const;
 };
 
 class VarDeclaration: public Declaration {
@@ -252,7 +257,6 @@ class Function: public Node {
 
     std::vector<std::unique_ptr<Statement>> statements;
 
-    code::SourceCodeReference begin_reference;
     std::size_t total_symbols;
 
     public:
@@ -261,7 +265,6 @@ class Function: public Node {
              std::optional<VarDeclaration> varDeclaration,
              std::optional<ConstDeclaration> constDeclaration,
              std::vector<std::unique_ptr<Statement>> statements,
-             code::SourceCodeReference beginReference,
              size_t totalSymbols
      );
 
@@ -272,7 +275,7 @@ class Function: public Node {
 
     Type getType() const override;
     void accept(ASTVisitor& visitor) const override;
-    [[nodiscard]] Result<long long> evaluate(const std::vector<long long>& arguments) const;
+    EvaluationContext evaluate(const std::vector<long long>& arguments) const;
 
     const std::optional<ParamDeclaration>& getParamDeclaration() const;
     const std::optional<VarDeclaration>& getVarDeclaration() const;

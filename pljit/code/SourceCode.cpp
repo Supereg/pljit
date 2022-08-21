@@ -126,7 +126,6 @@ void SourceCodeError::printCompilerError() const {
     std::string_view::iterator message_iterator_begin = codeReference->begin() - (column - 1);
     std::string_view::iterator message_iterator_end = codeReference->begin();
 
-    // TODO maybe support multiline error messages?
     for (; *message_iterator_end != '\n' && message_iterator_end != codeReference.management->content().end(); ++message_iterator_end) {}
 
     std::string_view code_line{message_iterator_begin, message_iterator_end};

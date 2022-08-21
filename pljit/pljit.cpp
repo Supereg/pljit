@@ -6,10 +6,6 @@
 #include "./PljitFunction.hpp"
 #include <atomic>
 
-// TODO -fno-rtti (no run time type information)
-// TODO separate libraries?
-// TODO check variable ordering (bigger to smaller!)
-
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
@@ -25,9 +21,13 @@ Pljit::~Pljit() {
     }
 }
 
-Result<long long> PljitFunctionHandle::operator()(std::initializer_list<long long int> argument_list) const {
+std::optional<long long> PljitFunctionHandle::operator()(std::initializer_list<long long int> argument_list) const {
     std::vector<long long> argument_vector{argument_list};
     return function->evaluate(argument_vector);
+}
+
+std::optional<code::SourceCodeError> PljitFunctionHandle::compilation_error() const {
+    return function->compilation_error();
 }
 //---------------------------------------------------------------------------
 Pljit::ListNode::ListNode(std::unique_ptr<PljitFunction> function) : function(std::move(function)), next(nullptr) {}

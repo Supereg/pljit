@@ -1,19 +1,20 @@
 //
-// Created by Andreas Bauer on 14.08.22.
+// Created by Andreas Bauer on 21.08.22.
 //
 
-#ifndef PLJIT_SYMBOL_ID_HPP
-#define PLJIT_SYMBOL_ID_HPP
+#ifndef PLJIT_AST_UTILS_HPP
+#define PLJIT_AST_UTILS_HPP
 
-#include <cstddef>
+#include "pljit/ast/AST.hpp"
+#include "pljit/util/Result.hpp"
+#include "pljit/code/SourceCodeManagement.hpp"
 
 //---------------------------------------------------------------------------
 namespace pljit {
 //---------------------------------------------------------------------------
-/// A type alias used to refer to a variable identifier.
-using symbol_id = std::size_t;
+Result<ast::Function> buildAST(const code::SourceCodeManagement& management);
 //---------------------------------------------------------------------------
 } // namespace pljit
 //---------------------------------------------------------------------------
 
-#endif //PLJIT_SYMBOL_ID_HPP
+#endif //PLJIT_AST_UTILS_HPP

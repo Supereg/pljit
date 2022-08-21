@@ -3,12 +3,12 @@
 //
 
 #include "pljit/ast/AST.hpp"
-#include "pljit/ast/ASTBuilder.hpp"
 #include "pljit/ast/ASTDOTVisitor.hpp"
 #include "pljit/lex/Lexer.hpp"
-#include "pljit/parse/Parser.hpp"
-#include "pljit/optimizations/DeadCodeElimination.hpp"
 #include "pljit/optimizations/ConstantPropagation.hpp"
+#include "pljit/optimizations/DeadCodeElimination.hpp"
+#include "pljit/parse/Parser.hpp"
+#include "test/utils/ast_utils.hpp"
 #include "utils/CaptureCOut.hpp"
 #include <gtest/gtest.h>
 
@@ -19,21 +19,6 @@ using namespace pljit::parse;
 using namespace pljit::lex;
 using namespace pljit::ast;
 using namespace pljit::ast::optimize;
-//---------------------------------------------------------------------------
-// TODO duplicated code!
-static Result<Function> buildAST(const SourceCodeManagement& management) {
-    Lexer lexer{ management };
-    Parser parser{ lexer };
-
-    Result<FunctionDefinition> program = parser.parse_program();
-    if (program.isFailure()) {
-        program.error().printCompilerError();
-    }
-    assert(program && "Unexpected parsing error!");
-
-    ASTBuilder builder;
-    return builder.analyzeFunction(*program);
-}
 //---------------------------------------------------------------------------
 TEST(ASTOptimization, testDeadCodeElminiation) {
     SourceCodeManagement management{"PARAM a;\n"
@@ -55,7 +40,7 @@ TEST(ASTOptimization, testDeadCodeElminiation) {
 
     CaptureCOut capture;
     DOTVisitor visitor;
-    function.accept(visitor);
+    visitor.print(function);
 
     ASSERT_EQ(
         capture.str(),
@@ -83,7 +68,6 @@ TEST(ASTOptimization, testDeadCodeElminiation) {
     );
 }
 
-// TODO test assignemtn making variable constant again!
 TEST(ASTOptimization, testConstantPropagation) {
     SourceCodeManagement management{"PARAM x;\n"
                                     "VAR a,b,f;\n"
@@ -110,7 +94,7 @@ TEST(ASTOptimization, testConstantPropagation) {
 
     CaptureCOut capture;
     DOTVisitor visitor;
-    function.accept(visitor);
+    visitor.print(function);
 
     ASSERT_EQ(
         capture.str(),

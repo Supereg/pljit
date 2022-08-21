@@ -18,7 +18,7 @@ void Literal::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Literal::evaluate(EvaluationContext&) const {
+std::optional<long long> Literal::evaluate(EvaluationContext&) const {
     return literal_value;
 }
 
@@ -36,7 +36,7 @@ void Variable::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Variable::evaluate(EvaluationContext& context) const {
+std::optional<long long> Variable::evaluate(EvaluationContext& context) const {
     return context[symbolId];
 }
 
@@ -87,7 +87,7 @@ void UnaryPlus::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> UnaryPlus::evaluate(EvaluationContext& context) const {
+std::optional<long long> UnaryPlus::evaluate(EvaluationContext& context) const {
     return child->evaluate(context);
 }
 //---------------------------------------------------------------------------
@@ -101,8 +101,8 @@ void UnaryMinus::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> UnaryMinus::evaluate(EvaluationContext& context) const {
-    Result<long long> value = child->evaluate(context);
+std::optional<long long> UnaryMinus::evaluate(EvaluationContext& context) const {
+    std::optional<long long> value = child->evaluate(context);
     if (!value) {
         return value;
     }
@@ -121,13 +121,13 @@ void Add::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Add::evaluate(EvaluationContext& context) const {
-    Result<long long> lhs = leftChild->evaluate(context);
+std::optional<long long> Add::evaluate(EvaluationContext& context) const {
+    std::optional<long long> lhs = leftChild->evaluate(context);
     if (!lhs) {
         return lhs;
     }
 
-    Result<long long> rhs = rightChild->evaluate(context);
+    std::optional<long long> rhs = rightChild->evaluate(context);
     if (!rhs) {
         return rhs;
     }
@@ -147,13 +147,13 @@ void Subtract::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Subtract::evaluate(EvaluationContext& context) const {
-    Result<long long> lhs = leftChild->evaluate(context);
+std::optional<long long> Subtract::evaluate(EvaluationContext& context) const {
+    std::optional<long long> lhs = leftChild->evaluate(context);
     if (!lhs) {
         return lhs;
     }
 
-    Result<long long> rhs = rightChild->evaluate(context);
+    std::optional<long long> rhs = rightChild->evaluate(context);
     if (!rhs) {
         return rhs;
     }
@@ -173,13 +173,13 @@ void Multiply::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Multiply::evaluate(EvaluationContext& context) const {
-    Result<long long> lhs = leftChild->evaluate(context);
+std::optional<long long> Multiply::evaluate(EvaluationContext& context) const {
+    std::optional<long long> lhs = leftChild->evaluate(context);
     if (!lhs) {
         return lhs;
     }
 
-    Result<long long> rhs = rightChild->evaluate(context);
+    std::optional<long long> rhs = rightChild->evaluate(context);
     if (!rhs) {
         return rhs;
     }
@@ -188,8 +188,8 @@ Result<long long> Multiply::evaluate(EvaluationContext& context) const {
     return *lhs * *rhs;
 }
 //---------------------------------------------------------------------------
-Divide::Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild, code::SourceCodeReference operatorSymbol)
-    : BinaryExpression(std::move(leftChild), std::move(rightChild)), operatorSymbol(operatorSymbol) {}
+Divide::Divide(std::unique_ptr<Expression> leftChild, std::unique_ptr<Expression> rightChild)
+    : BinaryExpression(std::move(leftChild), std::move(rightChild)) {}
 
 Node::Type Divide::getType() const {
     return Node::Type::DIVIDE;
@@ -199,20 +199,21 @@ void Divide::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Divide::evaluate(EvaluationContext& context) const {
-    Result<long long> lhs = leftChild->evaluate(context);
+std::optional<long long> Divide::evaluate(EvaluationContext& context) const {
+    std::optional<long long> lhs = leftChild->evaluate(context);
     if (!lhs) {
         return lhs;
     }
 
-    Result<long long> rhs = rightChild->evaluate(context);
+    std::optional<long long> rhs = rightChild->evaluate(context);
     if (!rhs) {
         return rhs;
     }
 
     if (*rhs == 0) {
-        // TODO specification says "halt program and >print< error messages"?
-        return operatorSymbol.makeError(code::ErrorType::ERROR, "Division by zero!");
+        // we were informed that we don't need to provide line numbers here!
+        context.setRuntimeError("Division by zero!");
+        return {};
     }
 
     return *lhs / *rhs;
@@ -239,14 +240,13 @@ void AssignmentStatement::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-std::optional<code::SourceCodeError> AssignmentStatement::evaluate(EvaluationContext& context) const {
-    Result<long long> value = expression->evaluate(context);
+void AssignmentStatement::evaluate(EvaluationContext& context) const {
+    std::optional<long long> value = expression->evaluate(context);
     if (!value) {
-        return value.error();
+        return;
     }
 
     context[variable.getSymbolId()] = *value;
-    return {};
 }
 
 const Variable& AssignmentStatement::getVariable() const {
@@ -263,14 +263,13 @@ void ReturnStatement::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-std::optional<code::SourceCodeError> ReturnStatement::evaluate(EvaluationContext& context) const {
-    Result<long long> value = expression->evaluate(context);
+void ReturnStatement::evaluate(EvaluationContext& context) const {
+    std::optional<long long> value = expression->evaluate(context);
     if (!value) {
-        return value.error();
+        return;
     }
 
     context.return_value() = *value;
-    return {};
 }
 //---------------------------------------------------------------------------
 Declaration::Declaration() : declaredIdentifiers() {}
@@ -281,8 +280,8 @@ const std::vector<Variable>& Declaration::getDeclaredIdentifiers() const {
 }
 //---------------------------------------------------------------------------
 ParamDeclaration::ParamDeclaration() = default;
-ParamDeclaration::ParamDeclaration(code::SourceCodeReference paramKeyword, std::vector<Variable> declaredIdentifiers)
-    : Declaration(std::move(declaredIdentifiers)), paramKeyword(paramKeyword) {}
+ParamDeclaration::ParamDeclaration(std::vector<Variable> declaredIdentifiers)
+    : Declaration(std::move(declaredIdentifiers)) {}
 
 Node::Type ParamDeclaration::getType() const {
     return Node::Type::PARAM_DECLARATION;
@@ -292,18 +291,19 @@ void ParamDeclaration::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-std::optional<code::SourceCodeError> ParamDeclaration::evaluate(EvaluationContext& context, std::vector<long long> arguments) const {
+void ParamDeclaration::evaluate(EvaluationContext& context, std::vector<long long> arguments) const {
     if (arguments.size() > declaredIdentifiers.size()) {
-        return paramKeyword.makeError(code::ErrorType::ERROR, "Received to many arguments!");
+        context.setRuntimeError("Received to many arguments!");
+        return;
     } else if (arguments.size() < declaredIdentifiers.size()) {
-        return paramKeyword.makeError(code::ErrorType::ERROR, "Received to few arguments!");
+        context.setRuntimeError("Received to few arguments!");
+        return;
     }
 
     for (std::size_t index = 0; index < arguments.size(); ++index) {
         symbol_id symbol = declaredIdentifiers[index].getSymbolId();
         context[symbol] = arguments[index];
     }
-    return {};
 }
 //---------------------------------------------------------------------------
 VarDeclaration::VarDeclaration() = default;
@@ -364,11 +364,9 @@ Function::Function(
     std::optional<VarDeclaration> varDeclaration,
     std::optional<ConstDeclaration> constDeclaration,
     std::vector<std::unique_ptr<Statement>> statements,
-    code::SourceCodeReference beginReference,
     size_t totalSymbols)
     : paramDeclaration(std::move(paramDeclaration)), varDeclaration(std::move(varDeclaration)), constDeclaration(std::move(constDeclaration)),
       statements(std::move(statements)),
-      begin_reference(beginReference),
       total_symbols(totalSymbols) {}
 
 Node::Type Function::getType() const {
@@ -379,17 +377,17 @@ void Function::accept(ASTVisitor& visitor) const {
     visitor.visit(*this);
 }
 
-Result<long long> Function::evaluate(const std::vector<long long>& arguments) const {
+EvaluationContext Function::evaluate(const std::vector<long long>& arguments) const {
     EvaluationContext context{ total_symbols };
 
     if (paramDeclaration) {
-        if (auto error = paramDeclaration->evaluate(context, arguments);
-            error.has_value()) {
-            return *error;
-        }
+        paramDeclaration->evaluate(context, arguments);
     } else if (!arguments.empty()) {
-        return begin_reference
-            .makeError(code::ErrorType::ERROR, "Provided arguments to function with missing PARAM declaration!");
+        context.setRuntimeError("Provided arguments to function with missing PARAM declaration!");
+    }
+
+    if (context.runtime_error()) {
+        return context;
     }
 
     if (constDeclaration) {
@@ -397,15 +395,12 @@ Result<long long> Function::evaluate(const std::vector<long long>& arguments) co
     }
 
     for (auto& statement: statements) {
-        if (auto error = statement->evaluate(context);
-            error.has_value()) {
-            return *error;
-        }
+        statement->evaluate(context);
 
         // With the assumption that the dead code elimination optimization was run, we could omit this check.
         // However, we don't want to build upon this assumption.
-        if (context.return_value().has_value()) {
-            return *context.return_value();
+        if (context.return_value() || context.runtime_error()) {
+            return context;
         }
     }
 

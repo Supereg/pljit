@@ -11,11 +11,7 @@ namespace pljit::ast {
 DOTVisitor::DOTVisitor() = default;
 
 void DOTVisitor::visit(const Function& node) {
-    reset();
-
     unsigned root = ++node_num;
-
-    printGraphHeader();
     printNode("Function");
 
     if (node.getParamDeclaration()) {
@@ -37,8 +33,6 @@ void DOTVisitor::visit(const Function& node) {
         printEdge(root);
         statement->accept(*this);
     }
-
-    printGraphFooter();
 }
 
 void DOTVisitor::visit(const ConstDeclaration& node) {
@@ -54,7 +48,6 @@ void DOTVisitor::visit(const ConstDeclaration& node) {
     }
 }
 
-// TODO method ordering!
 void DOTVisitor::visit(const VarDeclaration& node) {
     unsigned root = ++node_num;
 
